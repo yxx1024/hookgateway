@@ -4,7 +4,17 @@
 
 ---
 
-## 📊 当前架构评估 (Baseline)
+## �️ 兼容性原则 (Critical)
+**HookGateway 的核心优势是“开箱即用”。**
+所有优化方案**必须**遵循以下原则，确保在未配置 MySQL/Redis 时，系统仍能以默认的 H2 + 内存队列模式正常运行。
+
+*   **默认轻量 (H2 + Local)**: 不依赖任何外部组件，保留当前简单的同步读写模式。
+*   **按需升级 (MySQL + Redis)**: 只有当用户显式配置了 MySQL 和 Redis 时，才激活高性能摄入与分发逻辑。
+*   **实现手段**: 严格使用 `@ConditionalOnProperty` 和 `@Profile` 进行 Bean 加载控制。
+
+---
+
+## �📊 当前架构评估 (Baseline)
 
 ### 1. 核心瓶颈分析
 | 环节 | 当前机制 | 理论极限 | 瓶颈原因 |
@@ -20,13 +30,13 @@
 ---
 
 ## 🚀 优化方案 A：异步缓冲写入 (Write-Behind) - 优先级 P0
+**适用场景**: `app.distribution.mode=redis` 且配置了 MySQL。
 **目标**: 将摄入 QPS 提升至 Redis 极限 (10w+)，彻底解耦数据库写压力。
 
 ### 改造步骤
-1.  **修改 `IngestController`**:
-    *   取消同步 `eventRepository.save(event)`。
-    *   改为**仅**将 Event JSON 推送到 Redis List/Stream。
-    *   直接返回 `202 Accepted` 给调用方。
+1.  **修改 `IngestController` (条件分支)**:
+    *   **IF (Mode == Redis)**: 取消同步 `eventRepository.save(event)`，直接推送到 Redis Stream，返回 `202 Accepted`。
+    *   **ELSE (Mode == Async)**: 保持原有逻辑，同步写入 H2 数据库，返回 `200 OK`。
 
 2.  **新增 `EventPersister` 服务**:
     *   启动独立线程组，批量 (`pipelining`) 从 Redis 拉取事件。
