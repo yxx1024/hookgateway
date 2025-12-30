@@ -1,0 +1,106 @@
+# HookGateway Docker Compose 配置
+# 使用方式:
+#   单机部署 (H2): docker-compose up hookgateway
+#   完整部署 (MySQL+Redis): docker-compose --profile full up
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # HookGateway 应用 (核心服务)
+  # ===========================================
+  hookgateway:
+    build: .
+    container_name: hookgateway
+    ports:
+      - "8080:8080"
+    environment:
+      # 默认使用 H2 数据库和 async 模式 (无需 MySQL/Redis)
+      - SPRING_PROFILES_ACTIVE=default
+      - H2_CONSOLE_ENABLED=true
+      - JPA_SHOW_SQL=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # ===========================================
+  # MySQL 数据库 (可选，使用 --profile mysql 或 --profile full)
+  # ===========================================
+  mysql:
+    image: mysql:8.0
+    container_name: hookgateway-mysql
+    profiles: ["mysql", "full"]
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=webhook
+      - MYSQL_USER=hookgateway
+      - MYSQL_PASSWORD=hookgateway123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init_mysql.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # Redis (可选，使用 --profile redis 或 --profile full)
+  # ===========================================
+  redis:
+    image: redis:7-alpine
+    container_name: hookgateway-redis
+    profiles: ["redis", "full"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # 完整版 HookGateway (MySQL + Redis)
+  # ===========================================
+  hookgateway-full:
+    build: .
+    container_name: hookgateway-full
+    profiles: ["full"]
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=jdbc:mysql://mysql:3306/webhook?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - DB_DRIVER=com.mysql.cj.jdbc.Driver
+      - DB_USERNAME=hookgateway
+      - DB_PASSWORD=hookgateway123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DISTRIBUTION_MODE=redis
+      - H2_CONSOLE_ENABLED=false
+      - JPA_SHOW_SQL=false
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  mysql_data:
+  redis_data:

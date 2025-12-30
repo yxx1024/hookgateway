@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title th:text="#{settings.title}">Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSRF Token -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1 px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen text-slate-900">
+
+    <!-- Top Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/80 border-b border-slate-200 backdrop-blur-md">
+        <div class="container mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600"
+                    th:text="#{app.title}">Webhook Gateway</h1>
+                <div class="hidden md:flex gap-1">
+                    <a href="/"
+                        class="px-4 py-2 rounded-md font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                        th:text="#{nav.dashboard}">Dashboard</a>
+                    <a href="/subscriptions"
+                        class="px-4 py-2 rounded-md font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                        th:text="#{nav.subscriptions}">Subscriptions</a>
+                    <a href="/settings"
+                        class="px-4 py-2 rounded-md font-medium bg-blue-50 text-blue-600 transition-colors"
+                        th:text="#{nav.settings}">Settings</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center bg-slate-100 rounded-lg p-1 text-xs font-semibold">
+                    <a th:href="@{/settings(lang='zh')}" class="px-3 py-1.5 rounded-md transition-all"
+                        th:classappend="${#locale.language == 'zh' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}">中文</a>
+                    <a th:href="@{/settings(lang='en')}" class="px-3 py-1.5 rounded-md transition-all"
+                        th:classappend="${#locale.language == 'en' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}">EN</a>
+                </div>
+                <!-- Logout Button -->
+                <form th:action="@{/logout}" method="post" class="inline">
+                    <button type="submit"
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-rose-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span th:text="#{nav.logout}">退出</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-6 py-8 max-w-4xl">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-slate-900" th:text="#{settings.title}">System Settings</h2>
+        </div>
+
+        <!-- Cleanup Configuration Card -->
+        <div class="glass-card shadow-xl shadow-slate-200/50 rounded-2xl p-8 border border-slate-200">
+            <h3 class="text-xl font-bold text-slate-900 mb-2" th:text="#{settings.cleanup.title}">Auto Cleanup
+                Configuration</h3>
+            <p class="text-sm text-slate-500 mb-6" th:text="#{settings.cleanup.description}">The system will
+                automatically clean up historical events...</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Retention Days -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2"
+                        th:text="#{settings.cleanup.retention}">Retention Days</label>
+                    <select id="retentionDays"
+                        class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                        <option value="7" th:text="#{settings.cleanup.retention.7days}">7 Days</option>
+                        <option value="10" th:text="#{settings.cleanup.retention.10days}">10 Days</option>
+                        <option value="15" th:text="#{settings.cleanup.retention.15days}">15 Days</option>
+                        <option value="30" th:text="#{settings.cleanup.retention.30days}">30 Days</option>
+                    </select>
+                </div>
+
+                <!-- Enable Auto Cleanup -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2"
+                        th:text="#{settings.cleanup.enabled}">Enable Auto Cleanup</label>
+                    <div class="flex items-center h-[50px]">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="enabled" class="sr-only peer">
+                            <div
+                                class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                            </div>
+                            <span class="ms-3 text-sm font-medium text-slate-700" id="enabledLabel"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Section -->
+            <div class="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="text-slate-600 font-medium" th:text="#{settings.cleanup.lastRun}">Last Run At</p>
+                        <p class="text-slate-900 font-semibold mt-1" id="lastRunAt">-</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-600 font-medium" th:text="#{settings.cleanup.lastCount}">Last Cleanup Count
+                        </p>
+                        <p class="text-slate-900 font-semibold mt-1" id="lastCleanupCount">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-8 flex gap-4">
+                <button id="saveBtn"
+                    class="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    th:text="#{settings.cleanup.save}">Save Settings</button>
+                <button id="runNowBtn"
+                    class="px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/30 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                    th:text="#{settings.cleanup.runNow}">Run Now</button>
+            </div>
+
+            <!-- Status Message -->
+            <div id="statusMessage" class="mt-4 p-4 rounded-xl hidden">
+                <p class="text-sm font-medium"></p>
+            </div>
+        </div>
+        <!-- Account Security Card -->
+        <div class="glass-card shadow-xl shadow-slate-200/50 rounded-2xl p-8 border border-slate-200 mt-8">
+            <h3 class="text-xl font-bold text-slate-900 mb-2" th:text="#{settings.security.title}">Account Security</h3>
+            <p class="text-sm text-slate-500 mb-6" th:text="#{settings.security.description}">Manage your login
+                credentials and security preferences.</p>
+
+            <div class="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-900" th:text="#{settings.security.password}">Password</h4>
+                        <p class="text-xs text-slate-500" th:text="#{settings.security.password.desc}">Change your login
+                            password regularly.</p>
+                    </div>
+                </div>
+                <a href="/change-password"
+                    class="px-4 py-2 bg-white text-slate-700 font-semibold text-sm rounded-lg border border-slate-200 shadow-sm hover:bg-slate-50 transition-colors"
+                    th:text="#{settings.security.btn}">Change Password</a>
+            </div>
+        </div>
+
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        const messages = {
+            running: /*[[#{settings.cleanup.running}]]*/ 'Running...',
+            success: /*[[#{settings.cleanup.success}]]*/ 'Cleanup Successful',
+            disabled: /*[[#{settings.cleanup.disabled}]]*/ 'Auto cleanup is disabled',
+            noRun: /*[[#{settings.cleanup.noRun}]]*/ 'Never run',
+            resultEmpty: /*[[#{settings.cleanup.result.empty}]]*/ 'Cleanup Successful - No expired events found',
+            resultDeleted: /*[[#{settings.cleanup.result.deleted}]]*/ 'Cleanup Successful - {0} events deleted'
+        };
+
+        let statusTimeout;
+        const csrfToken = document.querySelector("meta[name='_csrf']").getAttribute("content");
+        const csrfHeader = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+        // Load initial config
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/cleanup/config');
+                const config = await response.json();
+
+                document.getElementById('retentionDays').value = config.retentionDays;
+                document.getElementById('enabled').checked = config.enabled;
+                updateEnabledLabel(config.enabled);
+
+                if (config.lastRunAt) {
+                    document.getElementById('lastRunAt').textContent = new Date(config.lastRunAt).toLocaleString();
+                } else {
+                    document.getElementById('lastRunAt').textContent = messages.noRun;
+                }
+
+                document.getElementById('lastCleanupCount').textContent = config.lastCleanupCount || 0;
+            } catch (error) {
+                console.error('Failed to load config:', error);
+            }
+        }
+
+        function updateEnabledLabel(enabled) {
+            document.getElementById('enabledLabel').textContent = enabled ? 'ON' : 'OFF';
+        }
+
+        document.getElementById('enabled').addEventListener('change', function () {
+            updateEnabledLabel(this.checked);
+        });
+
+        // Save configuration
+        document.getElementById('saveBtn').addEventListener('click', async function () {
+            const retentionDays = parseInt(document.getElementById('retentionDays').value);
+            const enabled = document.getElementById('enabled').checked;
+
+            try {
+                const response = await fetch('/api/cleanup/config', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        [csrfHeader]: csrfToken
+                    },
+                    body: JSON.stringify({ retentionDays, enabled })
+                });
+
+                if (response.ok) {
+                    showStatus('success', '✓ Settings saved successfully!');
+                    loadConfig();
+                } else {
+                    showStatus('error', '✗ Failed to save settings');
+                }
+            } catch (error) {
+                showStatus('error', '✗ Error: ' + error.message);
+            }
+        });
+
+        // Run cleanup now
+        document.getElementById('runNowBtn').addEventListener('click', async function () {
+            const btn = this;
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = messages.running || 'Processing...';
+
+            // Show running status immediately (no auto-hide)
+            const runningMsg = messages.running || 'Cleaning in progress...';
+            showStatus('info', runningMsg, false);
+
+            try {
+                const response = await fetch('/api/cleanup/run', {
+                    method: 'POST',
+                    headers: {
+                        [csrfHeader]: csrfToken
+                    }
+                });
+                const result = await response.json();
+
+                if (result.executed) {
+                    const count = result.deletedCount || 0;
+                    let msg = "";
+                    if (count === 0) {
+                        msg = messages.resultEmpty;
+                    } else {
+                        msg = messages.resultDeleted.replace('{0}', count);
+                    }
+                    showStatus('success', msg);
+                } else {
+                    showStatus('info', result.message);
+                }
+
+                loadConfig();
+            } catch (error) {
+                showStatus('error', '✗ Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+
+        function showStatus(type, message, autoHide = true) {
+            const statusEl = document.getElementById('statusMessage');
+
+            // Clear previous timeout if exists
+            if (statusTimeout) {
+                clearTimeout(statusTimeout);
+                statusTimeout = null;
+            }
+
+            let classes = 'mt-4 p-4 rounded-xl ';
+            if (type === 'success') {
+                classes += 'bg-emerald-50 border border-emerald-200 text-emerald-700';
+            } else if (type === 'error') {
+                classes += 'bg-rose-50 border border-rose-200 text-rose-700';
+            } else {
+                classes += 'bg-blue-50 border border-blue-200 text-blue-700';
+            }
+
+            statusEl.className = classes;
+            if (!message) {
+                message = 'Unknown status';
+            }
+            // 使用 textContent 替代 innerHTML，防止 XSS
+            statusEl.textContent = message;
+            statusEl.classList.remove('hidden');
+
+            if (autoHide) {
+                statusTimeout = setTimeout(() => {
+                    statusEl.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        // Load config on page load
+        loadConfig();
+    </script>
+
+</body>
+
+</html>
