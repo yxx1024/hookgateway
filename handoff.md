@@ -36,16 +36,23 @@
 ### 3. Webhook 签名验证框架
 - **安全增强**: 实现了 `VerifierStrategy` 策略模式。
 - **HMAC-SHA256**: 支持 GitHub 等平台的 HMAC 签名验证。
-- **微信支付 RSA**: 实现了 `WechatPayVerifier`，完整支持微信支付 V3 回调的 RSA-SHA256 签名验证。
+- **微信支付 V3 (完整版)**: 
+  - 实现了 `WechatPayVerifier`，支持 RSA-SHA256 验签。
+  - **证书自动轮换**: 支持配置多组 `[序列号, 公钥]` 对，系统根据 `Wechatpay-Serial` 头自动匹配公钥。
+  - **向后兼容**: 仍完美支持旧版单 PEM 证书配置。
 - **PEM 工具类**: 新增 `PemUtils` 解析 PEM 格式公钥。
-- **配置化**: 订阅级别配置验证方式、密钥和签名 Header。
+- **配置化 UI**: 订阅管理页新增了 **证书管理弹窗 (Cert Manager)**，支持友好地管理多套证书，并提供中英双语界面。
 
-### 4. 用户体验与文档增强 (New)
-- **双语支持**: 新增 `README_EN.md` 及中英文切换入口，支持国际化用户。
-- **配置友好化**: 在 `application.properties` 中添加了详细的 MySQL/Redis 模板与注释，方便新手上手。
-- **启动脚本修复**: 修复 `start.sh` 环境变量传递问题，增加构建失败检查。
-- **性能演进规划**: 输出 `OPTIMIZATION_PLAN.md`，制定了从单机到亿级流量的架构演进路线图。
-- **UI 优化**: 修复订阅列表溢出问题，优化表单折叠交互。
+### 4. 性能与架构优化 (New)
+- **Write-Behind (异步缓冲写入)**: 
+  - 实现了高并发摄入优化的核心机制。
+  - **模式**: `app.ingest.mode=redis`。此模式下，网关接收请求后仅做简单校验，立即将事件推送到 Redis Stream (`webhook:events:ingest`) 并返回 202，从而将摄入吞吐量与数据库写入解耦。
+  - **批量持久化**: 新增 `EventPersister` 服务，定时批量消费 Redis 流并将数据落库，随后再推送到分发流。
+- **文档与工程化**:
+  - **双语支持**: 新增 `README_EN.md` 及中英文切换入口。
+  - **配置友好化**: `application.properties` 添加了详细注释。
+  - **脚本修复**: 优化 `start.sh`。
+  - **演进规划**: 输出 `OPTIMIZATION_PLAN.md`。
 
 ---
 
@@ -58,11 +65,11 @@
 ---
 
 ## 📂 项目结构导读
-- `src/main/resources/templates/subscriptions.html`: 订阅管理页，包含安全验证配置。
-- `src/main/resources/i18n/messages*.properties`: 国际化文本。
+- `src/main/resources/templates/subscriptions.html`: 订阅管理页 (新增证书管理 Modal)。
+- `src/main/resources/i18n/messages*.properties`: 国际化文本 (新增证书管理相关词条)。
 - `src/main/java/com/example/hookgateway/security/`: **验签逻辑** (VerifierFactory, HmacVerifier, **WechatPayVerifier**)。
-- `src/main/java/com/example/hookgateway/utils/PemUtils.java`: PEM 公钥解析工具。
-- `src/main/java/com/example/hookgateway/controller/IngestController.java`: 核心摄入控制器。
+- `src/main/java/com/example/hookgateway/service/EventPersister.java`: **[NEW]** 批量持久化服务 (Write-Behind)。
+- `src/main/java/com/example/hookgateway/controller/IngestController.java`: 核心摄入控制器 (支持 Async Ingest)。
 - `OPTIMIZATION_PLAN.md`: **[NEW]** 性能优化与架构演进文档。
 - `README_EN.md`: **[NEW]** 英文说明文档。
 
@@ -70,11 +77,11 @@
 
 ## 🔮 V11 待办 (Future Plans)
 1. **Payload 变换 (Transformation)**: 实现 Webhook 内容转换功能（如使用 Freemarker/Velocity 模板引擎调整转发格式）。
-2. **性能优化实施**: 根据 `OPTIMIZATION_PLAN.md`，在用户配置了 Redis/MySQL 时按需启用异步缓冲写入 (Write-Behind)。
+2. **性能压测**: 对 Write-Behind 模式进行极限压测，验证 `app.ingest.mode=redis` 对 QPS 的提升效果。
 
 ---
 
 ## 🤖 接手 AI 指引
-本阶段不仅完成了核心功能（验签、Redis 分发），还大幅提升了项目的**工程化水平**（文档国际化、脚本健壮性、配置易用性）。
-你应该首先阅读 `OPTIMIZATION_PLAN.md` 以理解未来的架构方向。
+本阶段不仅完成了核心功能（验签、Redis 分发），还**提前完成了** P0 级的性能优化任务——**Write-Behind (异步写入)**，并完善了微信支付的**证书轮换**支持。
+项目现在具备了应对高并发和企业级安全需求的基础。
 接下来的核心开发任务是 **Payload 变换**，这将赋予网关强大的数据适配能力。
