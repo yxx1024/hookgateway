@@ -38,8 +38,8 @@ public class SecurityConfig {
                                 .csrf(csrf -> csrf
                                                 .ignoringRequestMatchers("/hooks/**", "/actuator/**"))
                                 .authorizeHttpRequests(auth -> auth
-                                                // 开放 Webhook 摄入端点
-                                                .requestMatchers("/hooks/**").permitAll()
+                                                // 开放 Webhook 摄入端点和 Tunnel WebSocket 端点
+                                                .requestMatchers("/hooks/**", "/tunnel/**").permitAll()
                                                 // 开放静态资源和登录页
                                                 .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**", "/error")
                                                 .permitAll()
