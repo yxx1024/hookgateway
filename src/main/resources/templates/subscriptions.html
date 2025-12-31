@@ -69,31 +69,31 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
                                     th:text="#{sub.add.destinationType}">Destination Type</label>
-                                <div class="flex gap-2 p-1 bg-slate-100 rounded-xl">
-                                    <label class="flex-1 cursor-pointer">
+                                <div class="flex gap-1 p-1 bg-slate-100 rounded-xl">
+                                    <label class="flex-1 cursor-pointer min-w-0">
                                         <input type="radio" name="destinationType" value="HTTP" checked
                                             class="peer sr-only" onchange="toggleDestinationType()">
                                         <span
-                                            class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-slate-500 border border-transparent peer-checked:bg-white peer-checked:text-blue-600 peer-checked:border-slate-200 peer-checked:shadow-sm transition-all">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            class="flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold text-slate-500 border border-transparent peer-checked:bg-white peer-checked:text-blue-600 peer-checked:border-slate-200 peer-checked:shadow-sm transition-all text-center truncate">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none"
                                                 viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                                             </svg>
-                                            <span th:text="#{sub.dest.http}">HTTP</span>
+                                            <span th:text="#{sub.dest.http}" class="truncate">HTTP</span>
                                         </span>
                                     </label>
-                                    <label class="flex-1 cursor-pointer">
+                                    <label class="flex-1 cursor-pointer min-w-0">
                                         <input type="radio" name="destinationType" value="TUNNEL" class="peer sr-only"
                                             onchange="toggleDestinationType()">
                                         <span
-                                            class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-slate-500 border border-transparent peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:border-slate-200 peer-checked:shadow-sm transition-all">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            class="flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold text-slate-500 border border-transparent peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:border-slate-200 peer-checked:shadow-sm transition-all text-center truncate">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none"
                                                 viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M13 10V3L4 14h7v7l9-11h-7z" />
                                             </svg>
-                                            Tunnel
+                                            <span class="truncate">Tunnel</span>
                                         </span>
                                     </label>
                                 </div>
