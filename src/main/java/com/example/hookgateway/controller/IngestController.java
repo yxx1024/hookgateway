@@ -32,11 +32,18 @@ public class IngestController {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
+    @org.springframework.beans.factory.annotation.Value("${app.ingest.mode:sync}")
+    private String ingestMode;
+
+    @org.springframework.beans.factory.annotation.Value("${app.ingest.stream.key:webhook:events:ingest}")
+    private String ingestStreamKey;
+
     @org.springframework.beans.factory.annotation.Value("${app.distribution.mode:async}")
     private String distributionMode;
 
     @PostMapping("/{source}/**")
-    public String ingest(@PathVariable String source, HttpServletRequest request,
+    public org.springframework.http.ResponseEntity<String> ingest(@PathVariable String source,
+            HttpServletRequest request,
             @RequestBody(required = false) String body) throws IOException {
         StringBuilder headers = new StringBuilder();
         Enumeration<String> headerNames = request.getHeaderNames();
@@ -45,6 +52,27 @@ public class IngestController {
             headers.append(name).append(": ").append(request.getHeader(name)).append("\n");
         }
 
+        // 1. Redis Async Ingestion (Write-Behind)
+        boolean redisAvailable = (redisTemplate != null);
+        if ("redis".equalsIgnoreCase(ingestMode) && redisAvailable) {
+            try {
+                java.util.Map<String, String> eventMap = new java.util.HashMap<>();
+                eventMap.put("source", source);
+                eventMap.put("method", request.getMethod());
+                eventMap.put("headers", headers.toString());
+                eventMap.put("payload", body == null ? "" : body);
+                eventMap.put("receivedAt", LocalDateTime.now().toString());
+
+                redisTemplate.opsForStream().add(ingestStreamKey, eventMap);
+
+                return org.springframework.http.ResponseEntity.accepted().body("Accepted");
+            } catch (Exception e) {
+                log.error("Failed to push to Redis Ingest Stream, falling back to Sync", e);
+                // Fallback will continue below
+            }
+        }
+
+        // 2. Default Sync Ingestion
         WebhookEvent event = WebhookEvent.builder()
                 .source(source)
                 .method(request.getMethod())
@@ -56,9 +84,7 @@ public class IngestController {
 
         final WebhookEvent savedEvent = eventRepository.save(event);
 
-        // Async Forwarding based on mode
-        boolean redisAvailable = (redisTemplate != null);
-
+        // Async Forwarding based on mode (Distribution Mode)
         if ("redis".equalsIgnoreCase(distributionMode) && redisAvailable) {
             log.info("Dispatching event {} via Redis Stream", savedEvent.getId());
             // 添加消息到 Stream
@@ -76,7 +102,7 @@ public class IngestController {
             triggerAutoForward(savedEvent);
         }
 
-        return "Received";
+        return org.springframework.http.ResponseEntity.ok("Received");
     }
 
     @Async
