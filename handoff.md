@@ -4,7 +4,7 @@
 **Webhook Gateway** 是一个轻量级 Webhook 路由与管理网关，用于接收、持久化、过滤并分发 Webhook 事件。它解决了异构系统对接时，下游服务被无关事件干扰、无法追踪投递历史以及缺乏安全验证的问题。
 
 - **当前版本**: V10 (Stable Release)
-- **最后更新**: 2025-12-30
+- **最后更新**: 2025-12-31
 - **核心能力**: 摄入存储、多路分发、指数退避重试、**内容级过滤**、**实时 QPS 监控**、手动重放、自动清理、**高级签名验证 (HMAC + RSA)**。
 
 ---
@@ -21,7 +21,7 @@
 
 ---
 
-## ✅ V10 版本里程碑 (开发中)
+## ✅ V10 版本里程碑 (已完成)
 
 ### 1. 数据库架构升级
 - **MySQL 迁移**: 已从 H2 文件数据库迁移至阿里云 RDS MySQL 8.0。
@@ -40,10 +40,12 @@
 - **PEM 工具类**: 新增 `PemUtils` 解析 PEM 格式公钥。
 - **配置化**: 订阅级别配置验证方式、密钥和签名 Header。
 
-### 4. 用户体验优化 (UI/UX)
-- **响应式布局**: 修复了订阅列表在窄屏下的溢出问题，通过横向滚动条和智能截断确保数据可见。
-- **表单优化**: 将“过滤器”和“安全验证”配置项折叠收纳，大幅简化了订阅创建界面，提升易用性。
-- **代码清理**: 移除了生产环境中未使用的测试代码 (`WebhookEventRepository` 测试方法)，保持代码库整洁。
+### 4. 用户体验与文档增强 (New)
+- **双语支持**: 新增 `README_EN.md` 及中英文切换入口，支持国际化用户。
+- **配置友好化**: 在 `application.properties` 中添加了详细的 MySQL/Redis 模板与注释，方便新手上手。
+- **启动脚本修复**: 修复 `start.sh` 环境变量传递问题，增加构建失败检查。
+- **性能演进规划**: 输出 `OPTIMIZATION_PLAN.md`，制定了从单机到亿级流量的架构演进路线图。
+- **UI 优化**: 修复订阅列表溢出问题，优化表单折叠交互。
 
 ---
 
@@ -59,21 +61,20 @@
 - `src/main/resources/templates/subscriptions.html`: 订阅管理页，包含安全验证配置。
 - `src/main/resources/i18n/messages*.properties`: 国际化文本。
 - `src/main/java/com/example/hookgateway/security/`: **验签逻辑** (VerifierFactory, HmacVerifier, **WechatPayVerifier**)。
-- `src/main/java/com/example/hookgateway/utils/PemUtils.java`: **[NEW]** PEM 公钥解析工具。
+- `src/main/java/com/example/hookgateway/utils/PemUtils.java`: PEM 公钥解析工具。
 - `src/main/java/com/example/hookgateway/controller/IngestController.java`: 核心摄入控制器。
-- `src/main/java/com/example/hookgateway/service/WebhookStreamConsumer.java`: Redis Stream 消费者服务。
-
----
-前端页面变更时候，注意国际化
-
----
-
-## 🔮 V10 待办 (Future Plans)
-1. **Payload 变换**: 实现 Webhook Transformation 功能（使用模板引擎调整转发格式）。
-2. ~~**高级验签**: 接入微信支付/支付宝 RSA 验签。~~ ✅ 已完成 (微信支付)
+- `OPTIMIZATION_PLAN.md`: **[NEW]** 性能优化与架构演进文档。
+- `README_EN.md`: **[NEW]** 英文说明文档。
 
 ---
 
-**接手 AI 指引**:
-本阶段已完成 V10 版本的核心安全升级：**Webhook 签名验证**（含 HMAC 和 **微信支付 RSA**）与 **Redis 分布式分发**。系统现在更安全且具备水平扩展能力。
-接下来的重点是 **Payload 变换功能**，这将赋予网关强大的数据适配能力。
+## 🔮 V11 待办 (Future Plans)
+1. **Payload 变换 (Transformation)**: 实现 Webhook 内容转换功能（如使用 Freemarker/Velocity 模板引擎调整转发格式）。
+2. **性能优化实施**: 根据 `OPTIMIZATION_PLAN.md`，在用户配置了 Redis/MySQL 时按需启用异步缓冲写入 (Write-Behind)。
+
+---
+
+## 🤖 接手 AI 指引
+本阶段不仅完成了核心功能（验签、Redis 分发），还大幅提升了项目的**工程化水平**（文档国际化、脚本健壮性、配置易用性）。
+你应该首先阅读 `OPTIMIZATION_PLAN.md` 以理解未来的架构方向。
+接下来的核心开发任务是 **Payload 变换**，这将赋予网关强大的数据适配能力。
