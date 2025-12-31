@@ -18,18 +18,25 @@ public class WechatPayVerifier implements VerifierStrategy {
     private static final String HEADER_TIMESTAMP = "Wechatpay-Timestamp";
     private static final String HEADER_NONCE = "Wechatpay-Nonce";
     private static final String HEADER_SIGNATURE = "Wechatpay-Signature";
+    private static final String HEADER_SERIAL = "Wechatpay-Serial";
 
     // Algorithm mandated by WeChat Pay V3
     private static final String ALGORITHM = "SHA256withRSA";
 
+    // Simple JSON parser dependency isn't needed if we do simple string check or
+    // use ObjectMapper if available.
+    // Trying to be dependency-light for the snippet, but Spring Boot has Jackson.
+    // Let's use Jackson for robustness.
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
     @Override
     public boolean verify(WebhookEvent event, Subscription sub) {
         String payload = event.getPayload();
-        // Here verifySecret stores the Platform Public Key (PEM format)
-        String publicKeyPem = sub.getVerifySecret();
+        String verifySecret = sub.getVerifySecret();
 
-        if (payload == null || publicKeyPem == null) {
-            log.warn("WeChat verification skipped: Payload or Public Key missing");
+        if (payload == null || verifySecret == null) {
+            log.warn("WeChat verification skipped: Payload or Verify Secret missing");
             return false;
         }
 
@@ -37,6 +44,7 @@ public class WechatPayVerifier implements VerifierStrategy {
         String timestamp = extractHeaderValue(event.getHeaders(), HEADER_TIMESTAMP);
         String nonce = extractHeaderValue(event.getHeaders(), HEADER_NONCE);
         String signature = extractHeaderValue(event.getHeaders(), HEADER_SIGNATURE);
+        String serial = extractHeaderValue(event.getHeaders(), HEADER_SERIAL); // New: Serial
 
         if (timestamp == null || nonce == null || signature == null) {
             log.warn("WeChat verification failed: Missing required headers (Timestamp/Nonce/Signature)");
@@ -50,10 +58,17 @@ public class WechatPayVerifier implements VerifierStrategy {
                     + nonce + "\n"
                     + payload + "\n";
 
-            // 3. Parse Public Key
+            // 3. Resolve Public Key
+            String publicKeyPem = resolvePublicKey(verifySecret, serial);
+            if (publicKeyPem == null) {
+                log.warn("WeChat verification failed: No matching public key found for serial {}", serial);
+                return false;
+            }
+
+            // 4. Parse Public Key
             PublicKey publicKey = PemUtils.parsePublicKey(publicKeyPem);
 
-            // 4. Verify Signature
+            // 5. Verify Signature
             Signature verifier = Signature.getInstance(ALGORITHM);
             verifier.initVerify(publicKey);
             verifier.update(signatureStr.getBytes(StandardCharsets.UTF_8));
@@ -67,6 +82,41 @@ public class WechatPayVerifier implements VerifierStrategy {
         } catch (Exception e) {
             log.error("WeChat verification unexpected error", e);
             return false;
+        }
+    }
+
+    private String resolvePublicKey(String verifySecret, String serial) {
+        verifySecret = verifySecret.trim();
+        // Check if it's JSON map
+        if (verifySecret.startsWith("{") && verifySecret.endsWith("}")) {
+            try {
+                // Parse JSON: {"SERIAL": "PEM", ...}
+                java.util.Map<String, String> keys = objectMapper.readValue(verifySecret,
+                        new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {
+                        });
+
+                if (serial == null) {
+                    log.warn(
+                            "WeChat verification: Multi-cert configured but no Wechatpay-Serial header found. Cannot select key.");
+                    return null;
+                }
+
+                String pem = keys.get(serial);
+                if (pem == null) {
+                    log.warn("WeChat verification: Key not found for serial '{}'. Available serials: {}", serial,
+                            keys.keySet());
+                }
+                return pem;
+            } catch (Exception e) {
+                log.error("Failed to parse verifySecret as JSON map", e);
+                // Fallback or fail? If it looks like JSON but fails, it's likely a config
+                // error.
+                return null;
+            }
+        } else {
+            // Backward compatibility: Treat entire string as single PEM
+            // If serial provided, we can't check it match, just use the key.
+            return verifySecret;
         }
     }
 
