@@ -11,11 +11,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/hooks")
@@ -27,6 +30,12 @@ public class IngestController {
     private final SubscriptionRepository subscriptionRepository;
     private final ReplayService replayService;
     private final com.example.hookgateway.security.VerifierFactory verifierFactory;
+
+    // V11: Tunnel support
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.example.hookgateway.websocket.TunnelSessionManager tunnelSessionManager;
+
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
     // Redis support - optional
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -219,6 +228,17 @@ public class IngestController {
                 continue;
             }
 
+            // V11: Tunnel Routing Logic
+            if ("TUNNEL".equalsIgnoreCase(sub.getDestinationType())) {
+                // 通过 WebSocket 推送到 Tunnel 客户端
+                String deliveryLog = deliverToTunnel(event, sub);
+                report.append("--- Delivery Report for TUNNEL (").append(sub.getTunnelKey()).append(") ---\n")
+                        .append(deliveryLog).append("\n\n");
+
+                // TODO: 目前 Tunnel 不计入 successCount，后续可根据客户端响应调整
+                continue;
+            }
+
             // V8: Clear previous logs before starting a new subscription delivery
             replayService.startNewTracking();
 
@@ -251,6 +271,46 @@ public class IngestController {
         eventRepository.save(event);
 
         log.info("Event {} processed: {}/{} success", event.getId(), successCount, subs.size());
+    }
+
+    /**
+     * V11: 通过 WebSocket Tunnel 发送 Webhook
+     */
+    private String deliverToTunnel(WebhookEvent event, Subscription sub) {
+        if (tunnelSessionManager == null) {
+            return "ERROR: TunnelSessionManager not available";
+        }
+
+        String tunnelKey = sub.getTunnelKey();
+        if (tunnelKey == null || tunnelKey.isEmpty()) {
+            return "ERROR: Tunnel key not configured";
+        }
+
+        WebSocketSession session = tunnelSessionManager.getSession(tunnelKey);
+        if (session == null || !session.isOpen()) {
+            return "ERROR: Tunnel not connected (key: " + tunnelKey + ")";
+        }
+
+        try {
+            // 构造推送消息
+            Map<String, Object> tunnelMessage = Map.of(
+                    "type", "WEBHOOK",
+                    "eventId", event.getId(),
+                    "source", event.getSource(),
+                    "method", event.getMethod(),
+                    "headers", event.getHeaders(),
+                    "payload", event.getPayload() != null ? event.getPayload() : "");
+
+            String jsonMessage = objectMapper.writeValueAsString(tunnelMessage);
+            session.sendMessage(new TextMessage(jsonMessage));
+
+            log.info("[Tunnel] Sent webhook {} to tunnel {}", event.getId(), tunnelKey);
+            return "SUCCESS: Sent to tunnel at " + LocalDateTime.now();
+
+        } catch (Exception e) {
+            log.error("[Tunnel] Failed to send to tunnel {}", tunnelKey, e);
+            return "ERROR: Failed to send - " + e.getMessage();
+        }
     }
 
 }

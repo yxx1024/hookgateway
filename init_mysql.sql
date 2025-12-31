@@ -1,5 +1,5 @@
 -- Webhook Gateway MySQL 初始化脚本
--- 适用版本: V9 -> V10 迁移
+-- 适用版本: V11 (支持 Webhook Tunneling)
 -- 数据库名: webhook (请确保已创建该数据库)
 
 SET NAMES utf8mb4;
@@ -21,7 +21,11 @@ CREATE TABLE `subscription` (
   `verify_method` varchar(50) DEFAULT 'NONE',
   `verify_secret` text,
   `signature_header` varchar(100) DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  -- V11 Webhook Tunneling 支持
+  `destination_type` varchar(20) DEFAULT 'HTTP' COMMENT '目标类型: HTTP, TUNNEL',
+  `tunnel_key` varchar(100) DEFAULT NULL COMMENT 'Tunnel 认证密钥 (UUID)',
+  PRIMARY KEY (`id`),
+  KEY `idx_tunnel_key` (`tunnel_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- ----------------------------

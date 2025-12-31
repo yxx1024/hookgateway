@@ -45,6 +45,13 @@ public class Subscription {
 
     private String signatureHeader; // Header name containing the signature (e.g., X-Hub-Signature-256)
 
+    // V11: Webhook Tunneling Support
+    @Builder.Default
+    private String destinationType = "HTTP"; // HTTP, TUNNEL
+
+    @Column(length = 100)
+    private String tunnelKey; // Tunnel authentication key (UUID format)
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

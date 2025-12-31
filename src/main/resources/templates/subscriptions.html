@@ -65,11 +65,92 @@
                                 <input name="source" type="text" required placeholder="github"
                                     class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm">
                             </div>
+                            <!-- Destination Type -->
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                    th:text="#{sub.add.destinationType}">Destination Type</label>
+                                <div class="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                                    <label class="flex-1 cursor-pointer">
+                                        <input type="radio" name="destinationType" value="HTTP" checked
+                                            class="peer sr-only" onchange="toggleDestinationType()">
+                                        <span
+                                            class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-slate-500 border border-transparent peer-checked:bg-white peer-checked:text-blue-600 peer-checked:border-slate-200 peer-checked:shadow-sm transition-all">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                            </svg>
+                                            <span th:text="#{sub.dest.http}">HTTP</span>
+                                        </span>
+                                    </label>
+                                    <label class="flex-1 cursor-pointer">
+                                        <input type="radio" name="destinationType" value="TUNNEL" class="peer sr-only"
+                                            onchange="toggleDestinationType()">
+                                        <span
+                                            class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-bold text-slate-500 border border-transparent peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:border-slate-200 peer-checked:shadow-sm transition-all">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            Tunnel
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Target URL Input -->
+                            <div id="targetUrlGroup">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
                                     th:text="#{sub.add.target}">Target URL</label>
-                                <input name="targetUrl" type="url" required placeholder="https://api.myapp.com/webhook"
+                                <input name="targetUrl" id="targetUrlInput" type="url"
+                                    placeholder="https://api.myapp.com/webhook"
                                     class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm">
+                            </div>
+
+                            <!-- Tunnel Info (Hidden by default) -->
+                            <div id="tunnelGroup" class="hidden space-y-4">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                        th:text="#{sub.tunnel.key}">Tunnel Key</label>
+                                    <div class="relative flex items-center">
+                                        <input type="text" name="tunnelKey" id="tunnelKeyInput" readonly
+                                            class="w-full h-10 pl-3 pr-10 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-sm font-mono font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none">
+                                        <button type="button" onclick="generateTunnelKey()"
+                                            class="absolute right-2 p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                                            title="Regenerate Key">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-900">
+                                    <div class="flex items-center gap-2 mb-2 font-bold text-indigo-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
+                                            fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        Tunnel Mode Usage
+                                    </div>
+                                    <div class="bg-indigo-900/5 rounded-lg p-3 font-mono break-all leading-relaxed relative group cursor-pointer hover:bg-indigo-900/10 transition-colors"
+                                        onclick="navigator.clipboard.writeText(this.innerText.trim()); alert('Command copied!')">
+                                        java -jar tunnel-agent.jar --server=ws://localhost:8080/tunnel/connect
+                                        --key=<span id="usageCmdKey" class="font-bold text-indigo-700">KEY</span>
+                                        --target=http://localhost:8080/webhook
+                                        <div
+                                            class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-indigo-200 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded font-bold">
+                                            COPY</div>
+                                    </div>
+                                    <p class="mt-2 text-indigo-600/80 italic">Click the command above to copy.</p>
+                                </div>
                             </div>
                         </div>
 
@@ -201,7 +282,7 @@
                                 <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"
                                     th:text="#{list.source}">Source</th>
                                 <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"
-                                    th:text="#{sub.list.target}">Target URL</th>
+                                    th:text="#{sub.list.destination}">Destination</th>
                                 <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"
                                     th:text="#{sub.list.filter}">Filter</th>
                                 <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"
@@ -219,8 +300,40 @@
                                         class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
                                         th:text="${sub.source}"></span>
                                 </td>
-                                <td class="px-4 py-4 font-mono text-xs text-slate-500 max-w-[200px] truncate"
-                                    th:text="${sub.targetUrl}" th:title="${sub.targetUrl}"></td>
+                                <td class="px-4 py-4 font-mono text-xs text-slate-500 max-w-[200px]">
+                                    <!-- HTTP Mode -->
+                                    <div th:if="${sub.destinationType == 'HTTP' || sub.destinationType == null}"
+                                        class="truncate" th:text="${sub.targetUrl}" th:title="${sub.targetUrl}"></div>
+
+                                    <!-- Tunnel Mode -->
+                                    <div th:if="${sub.destinationType == 'TUNNEL'}" class="flex flex-col gap-1">
+                                        <div class="flex items-center gap-1.5 font-bold text-indigo-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20"
+                                                fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                            TUNNEL
+                                        </div>
+                                        <div class="flex items-center gap-2 bg-slate-100 rounded px-2 py-1">
+                                            <span class="truncate max-w-[120px]" th:text="${sub.tunnelKey}"
+                                                th:title="${sub.tunnelKey}"></span>
+                                            <button type="button" class="text-slate-400 hover:text-blue-600"
+                                                th:data-key="${sub.tunnelKey}"
+                                                onclick="navigator.clipboard.writeText(this.getAttribute('data-key')); alert('Key Copied!')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <!-- Connection Status Check (Simple UI, real status needs API call or WS) -->
+                                        <!-- For now static, can be enhanced with JS poll -->
+                                    </div>
+                                </td>
                                 <td class="px-4 py-4 font-mono text-xs text-slate-500">
                                     <div th:if="${sub.filterType != 'NONE'}" class="flex flex-col gap-1">
                                         <span class="font-bold text-slate-700 whitespace-nowrap"
@@ -598,6 +711,51 @@
             wechatSecretDisplay.value = jsonStr;
 
             closeCertModal();
+        }
+
+        // --- Tunnel Toggle Logic ---
+        function toggleDestinationType() {
+            const type = document.querySelector('input[name="destinationType"]:checked').value;
+            const targetUrlGroup = document.getElementById('targetUrlGroup');
+            const targetUrlInput = document.getElementById('targetUrlInput');
+            const tunnelGroup = document.getElementById('tunnelGroup');
+            const tunnelKeyInput = document.getElementById('tunnelKeyInput');
+
+            if (type === 'TUNNEL') {
+                targetUrlGroup.classList.add('hidden');
+                tunnelGroup.classList.remove('hidden');
+                targetUrlInput.removeAttribute('required');
+
+                // Auto generate key if empty
+                if (!tunnelKeyInput.value || tunnelKeyInput.value === '[Generated on Save]') {
+                    generateTunnelKey();
+                }
+            } else {
+                targetUrlGroup.classList.remove('hidden');
+                tunnelGroup.classList.add('hidden');
+                targetUrlInput.setAttribute('required', '');
+            }
+        }
+
+        function generateTunnelKey() {
+            // Check crypto API availability
+            let uuid = '';
+            if (crypto && crypto.randomUUID) {
+                uuid = crypto.randomUUID();
+            } else {
+                // Fallback
+                uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+            document.getElementById('tunnelKeyInput').value = uuid;
+            updateUsageCmd(uuid);
+        }
+
+        function updateUsageCmd(key) {
+            const el = document.getElementById('usageCmdKey');
+            if (el) el.innerText = key;
         }
     </script>
 </body>
