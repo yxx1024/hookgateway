@@ -54,8 +54,19 @@ public class ReplayController {
             event.setDeliveryDetails(currentDetails == null ? newLog : currentDetails + newLog);
             event.setLastDeliveryAt(java.time.LocalDateTime.now());
 
+            // Update status based on last action result (V12.1: Nuanced State Machine)
+            String currentStatus = event.getStatus();
             if (isSuccess) {
                 event.setStatus("SUCCESS");
+            } else {
+                // If manual replay failed but it was previously successful, 
+                // mark as PARTIAL_SUCCESS to indicate a regression/issue without losing history.
+                if ("SUCCESS".equals(currentStatus)) {
+                    event.setStatus("PARTIAL_SUCCESS");
+                } else if (currentStatus == null || "RECEIVED".equals(currentStatus) || "PENDING".equals(currentStatus)) {
+                    event.setStatus("FAILED");
+                }
+                // Maintain PARTIAL_SUCCESS, FAILED or NO_MATCH as is
             }
 
             eventRepository.save(event);
