@@ -19,6 +19,7 @@ public class ReplayService {
 
     // V8: ThreadLocal to collect all retry attempts' logs
     private static final ThreadLocal<StringBuilder> logAccumulator = ThreadLocal.withInitial(StringBuilder::new);
+    private static final ThreadLocal<Integer> attemptCounter = ThreadLocal.withInitial(() -> 0);
 
     private static final java.time.format.DateTimeFormatter LOG_DATE_FORMATTER = java.time.format.DateTimeFormatter
             .ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -32,6 +33,7 @@ public class ReplayService {
 
     private void clearLog() {
         logAccumulator.get().setLength(0);
+        attemptCounter.set(0);
     }
 
     @Data
@@ -48,22 +50,19 @@ public class ReplayService {
     /**
      * V7: 带有指数退避重试的重放逻辑
      * V8: 增加了轨迹日志收集
+     * V12: 优化重试参数并显式记录尝试次数
      */
     @org.springframework.retry.annotation.Retryable(retryFor = {
-            RuntimeException.class }, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 1000, multiplier = 2.0))
+            RuntimeException.class }, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 2000, multiplier = 2.0))
     public ReplayResult replayWithRetry(String method, String headersRaw, String payload, String targetUrl) {
-        // We don't clear log here because replayWithRetry might be called multiple
-        // times in one thread?
-        // No, IngestController calls it once per subscription. But to be safe, we
-        // should manage life cycle.
-        // Actually, triggerAutoForward is @Async, so one thread per event processing.
-        // But one event might have multiple subscriptions. So we should clear before
-        // EACH subscription's retry logic.
-
+        int attempt = attemptCounter.get() + 1;
+        attemptCounter.set(attempt);
+        
+        appendLog("--- Attempt #" + attempt + " ---");
         ReplayResult result = replay(method, headersRaw, payload, targetUrl);
 
         if (!result.isSuccess()) {
-            throw new RuntimeException("Delivery failed: " + result.getMessage());
+            throw new RuntimeException("HTTP " + result.getStatusCode() + " / " + result.getMessage());
         }
 
         // If success, include the accumulated log

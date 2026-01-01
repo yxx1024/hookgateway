@@ -31,12 +31,16 @@ public class ReplayController {
                 isSuccess = deliveryLog.startsWith("SUCCESS");
                 resultMsg = "Tunnel Replay (" + tunnelKey + "): " + deliveryLog;
             } else if (targetUrl != null && !targetUrl.trim().isEmpty()) {
-                // HTTP URL Replay
-                ReplayService.ReplayResult result = replayService.replay(event.getMethod(),
+                // HTTP URL Replay with Retry Support (V12)
+                replayService.startNewTracking();
+                ReplayService.ReplayResult result = replayService.replayWithRetry(event.getMethod(),
                         event.getHeaders(), event.getPayload(), targetUrl);
+                
                 isSuccess = result.isSuccess();
                 responseStatusCode = result.getStatusCode();
-                resultMsg = "Manual Replay to " + targetUrl + ": HTTP " + responseStatusCode + (isSuccess ? " (SUCCESS)" : " (FAILED)");
+                resultMsg = "Manual Replay to " + targetUrl + ": " + (isSuccess ? " (SUCCESS)" : " (FAILED)");
+                // 此时 resultMsg 只是摘要，详细轨迹在 result.getLog() 中
+                resultMsg += "\n" + result.getLog();
             } else {
                 return ResponseEntity.badRequest().body("Either targetUrl or tunnelKey must be provided");
             }

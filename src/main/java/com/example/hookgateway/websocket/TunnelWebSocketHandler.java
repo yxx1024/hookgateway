@@ -10,6 +10,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Map;
 
 /**
@@ -73,7 +74,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
         log.debug("[TunnelWebSocket] Received message from {}: {}", tunnelKey, payload);
 
         try {
-            Map<String, Object> msg = objectMapper.readValue(payload, Map.class);
+            Map<String, Object> msg = objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {});
             String type = (String) msg.get("type");
 
             if ("ACK".equals(type)) {
