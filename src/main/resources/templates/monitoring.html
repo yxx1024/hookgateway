@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title th:text="#{nav.monitoring}">System Monitoring</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10B981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen text-slate-900">
+
+    <!-- Hidden elements for JS i18n -->
+    <div id="i18n" class="hidden" th:data-status-live="#{monitoring.status.live}"
+        th:data-status-offline="#{monitoring.status.offline}" th:data-chart-events="#{monitoring.chart.events}"
+        th:data-chart-memory="#{monitoring.chart.memory}" th:data-label-success="#{monitoring.chart.label.success}"
+        th:data-label-failed="#{monitoring.chart.label.failed}" th:data-label-memory="#{monitoring.chart.label.memory}"
+        th:data-label-qps="#{monitoring.chart.label.qps}">
+    </div>
+
+    <!-- Top Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/80 border-b border-slate-200 backdrop-blur-md">
+        <div class="container mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600"
+                    th:text="#{app.title}">Webhook Gateway</h1>
+                <div class="hidden md:flex gap-1">
+                    <a href="/"
+                        class="px-4 py-2 rounded-md font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                        th:text="#{nav.dashboard}">Dashboard</a>
+                    <a href="/subscriptions"
+                        class="px-4 py-2 rounded-md font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                        th:text="#{nav.subscriptions}">Subscriptions</a>
+                    <a href="/settings"
+                        class="px-4 py-2 rounded-md font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                        th:text="#{nav.settings}">Settings</a>
+                    <a href="/monitoring"
+                        class="px-4 py-2 rounded-md font-medium bg-blue-50 text-blue-600 transition-colors"
+                        th:text="#{nav.monitoring}">Monitoring</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center bg-slate-100 rounded-lg p-1 text-xs font-semibold">
+                    <a href="?lang=zh" class="px-3 py-1.5 rounded-md transition-all"
+                        th:classappend="${#locale.language == 'zh' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}">中文</a>
+                    <a href="?lang=en" class="px-3 py-1.5 rounded-md transition-all"
+                        th:classappend="${#locale.language == 'en' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}">EN</a>
+                </div>
+                <!-- Logout Button -->
+                <form th:action="@{/logout}" method="post" class="inline">
+                    <button type="submit"
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-rose-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span th:text="#{nav.logout}">退出</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-6 py-8">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                    <span th:text="#{monitoring.title}">System Monitoring</span>
+                    <span
+                        class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium flex items-center gap-1.5">
+                        <span class="pulse-dot"></span>
+                        <span id="systemStatus" th:text="#{monitoring.status.live}">Live</span>
+                    </span>
+                </h2>
+                <p class="text-slate-500 mt-1" th:text="#{monitoring.subtitle}">Real-time system performance and metrics
+                </p>
+            </div>
+            <div class="text-sm text-slate-500 font-mono bg-white px-3 py-1.5 rounded-lg border border-slate-200">
+                <span th:text="#{monitoring.uptime.prefix}">Uptime:</span> <span id="uptime"
+                    class="font-bold text-slate-700">--</span>
+            </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Memory Card -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500" th:text="#{monitoring.memory.title}">JVM Memory
+                        </p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-1"><span id="memoryUsed">--</span> MB</h3>
+                    </div>
+                    <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 mb-2">
+                    <div id="memoryBar" class="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                        style="width: 0%"></div>
+                </div>
+                <p class="text-xs text-slate-400"><span th:text="#{monitoring.memory.total}">Total:</span> <span
+                        id="memoryMax">--</span> MB</p>
+            </div>
+
+            <!-- CPU Card -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500" th:text="#{monitoring.cpu.title}">CPU Load</p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-1"><span id="cpuLoad">--</span>%</h3>
+                    </div>
+                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600"><span th:text="#{monitoring.cpu.cores}">Cores:</span> <span
+                        id="cpuCores" class="font-bold">--</span></p>
+                <p class="text-xs text-slate-400 mt-2" th:text="#{monitoring.cpu.process}">Process CPU utilization</p>
+            </div>
+
+            <!-- Events Stat Card -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500" th:text="#{monitoring.events.title}">Total Events
+                        </p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-1"><span id="totalEvents">--</span></h3>
+                    </div>
+                    <div class="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-emerald-600 font-medium">✅ <span id="successRate">--</span>% <span
+                            th:text="#{status.success}">Success</span></span>
+                    <span class="text-rose-500 font-medium">❌ <span id="failedCount">--</span> <span
+                            th:text="#{status.failed}">Failed</span></span>
+                </div>
+            </div>
+
+            <!-- Request Stat Card (Updated with QPS) -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500" th:text="#{monitoring.qps.title}">Real-time QPS
+                        </p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-1"><span id="qpsValue">--</span></h3>
+                    </div>
+                    <div class="p-2 bg-orange-50 text-orange-600 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600"><span id="totalRequests">--</span> <span class="text-xs"
+                        th:text="#{monitoring.requests.title}">Requests</span></p>
+                <p class="text-xs text-slate-400 mt-1" th:text="#{monitoring.requests.sub}">Since startup</p>
+            </div>
+        </div>
+
+        <!-- Charts Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Event Status Chart -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-lg font-bold text-slate-800 mb-6" th:text="#{monitoring.chart.events}">Event
+                    Distribution</h3>
+                <div class="h-64 flex items-center justify-center">
+                    <canvas id="eventChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Memory & QPS Chart -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-lg font-bold text-slate-800 mb-6"><span th:text="#{monitoring.chart.memory}">System
+                        Load</span> & <span th:text="#{monitoring.chart.label.qps}">QPS</span></h3>
+                <div class="h-64">
+                    <canvas id="loadChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script th:inline="javascript">
+        // i18n helper
+        const i18n = document.getElementById('i18n').dataset;
+
+        // State for QPS calculation
+        let lastRequestsTotal = -1;
+        let lastTimestamp = 0;
+
+        // Initialize Charts
+        let eventChart, loadChart;
+
+        function initCharts() {
+            // Event Chart (Doughnut)
+            const eventCtx = document.getElementById('eventChart').getContext('2d');
+            eventChart = new Chart(eventCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [i18n.labelSuccess, i18n.labelFailed],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#10B981', '#F43F5E'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Load Chart (Dual Axis: Memory & QPS)
+            const loadCtx = document.getElementById('loadChart').getContext('2d');
+            loadChart = new Chart(loadCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: i18n.labelMemory,
+                            data: [],
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: i18n.labelQps,
+                            data: [],
+                            borderColor: '#F97316',
+                            backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            title: { display: true, text: 'MB' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            title: { display: true, text: 'QPS' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true }
+                    }
+                }
+            });
+        }
+
+        async function fetchData() {
+            try {
+                const nowMs = Date.now();
+
+                // Fetch Overview Data
+                const res = await fetch('/api/monitoring/overview');
+                const data = await res.json();
+
+                // Fetch HTTP Stats
+                const resHttp = await fetch('/api/monitoring/http-stats');
+                const dataHttp = await resHttp.json();
+
+                // Update DOM (Overview)
+                document.getElementById('uptime').textContent = data.uptimeFormatted;
+                document.getElementById('memoryUsed').textContent = data.memoryUsedMB;
+                document.getElementById('memoryMax').textContent = data.memoryMaxMB;
+                document.getElementById('memoryBar').style.width = data.memoryUsagePercent + '%';
+
+                const load = data.systemLoadAverage >= 0 ? data.systemLoadAverage.toFixed(2) : 'N/A';
+                document.getElementById('cpuLoad').textContent = load;
+                document.getElementById('cpuCores').textContent = data.availableProcessors;
+
+                document.getElementById('totalEvents').textContent = data.totalEvents;
+                document.getElementById('successRate').textContent = data.successRate;
+                document.getElementById('failedCount').textContent = data.failedEvents;
+
+                // QPS Calculation
+                const currentRequestsTotal = dataHttp.totalRequests;
+                document.getElementById('totalRequests').textContent = currentRequestsTotal;
+
+                let currentQps = 0;
+                if (lastRequestsTotal >= 0 && lastTimestamp > 0) {
+                    const deltaRequests = currentRequestsTotal - lastRequestsTotal;
+                    const deltaTimeSec = (nowMs - lastTimestamp) / 1000;
+                    if (deltaTimeSec > 0) {
+                        currentQps = (deltaRequests / deltaTimeSec).toFixed(1);
+                    }
+                }
+                // Update state
+                lastRequestsTotal = currentRequestsTotal;
+                lastTimestamp = nowMs;
+
+                document.getElementById('qpsValue').textContent = currentQps;
+
+                // Update Charts
+                eventChart.data.datasets[0].data = [data.successfulEvents, data.failedEvents];
+                eventChart.update();
+
+                const timeLabel = new Date().toLocaleTimeString();
+                loadChart.data.labels.push(timeLabel);
+                loadChart.data.datasets[0].data.push(data.memoryUsedMB);
+                loadChart.data.datasets[1].data.push(currentQps);
+
+                if (loadChart.data.labels.length > 20) {
+                    loadChart.data.labels.shift();
+                    loadChart.data.datasets[0].data.shift();
+                    loadChart.data.datasets[1].data.shift();
+                }
+                loadChart.update();
+
+                // Set online status text
+                document.getElementById('systemStatus').textContent = i18n.statusLive;
+                document.getElementById('systemStatus').parentElement.classList.replace('bg-slate-200', 'bg-emerald-100');
+                document.getElementById('systemStatus').parentElement.classList.replace('text-slate-500', 'text-emerald-700');
+
+            } catch (e) {
+                console.error("Failed to fetch monitoring data", e);
+                document.getElementById('systemStatus').textContent = i18n.statusOffline;
+                document.getElementById('systemStatus').parentElement.classList.replace('bg-emerald-100', 'bg-slate-200');
+                document.getElementById('systemStatus').parentElement.classList.replace('text-emerald-700', 'text-slate-500');
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            fetchData();
+            // Auto refresh every 3 seconds
+            setInterval(fetchData, 3000);
+        });
+    </script>
+</body>
+
+</html>

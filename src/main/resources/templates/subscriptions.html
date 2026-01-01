@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title th:text="#{sub.title}">Subscriptions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen text-slate-900">
+
+    <!-- Top Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/80 border-b border-slate-200 backdrop-blur-md">
+        <div class="container mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600"
+                    th:text="#{app.title}">Webhook Gateway</h1>
+                <div class="md:flex gap-1">
+                    <a href="/"
+                        class="px-4 py-2 rounded-md font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                        th:text="#{nav.dashboard}">Dashboard</a>
+                    <a href="/subscriptions" class="px-4 py-2 rounded-md font-medium bg-blue-50 text-blue-600"
+                        th:text="#{nav.subscriptions}">Subscriptions</a>
+                    <a href="/settings"
+                        class="px-4 py-2 rounded-md font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                        th:text="#{nav.settings}">Settings</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="?lang=zh" class="text-xs font-bold text-slate-400 hover:text-slate-600">中</a>
+                <a href="?lang=en" class="text-xs font-bold text-slate-400 hover:text-slate-600">EN</a>
+                <!-- Logout Button -->
+                <form th:action="@{/logout}" method="post" class="inline">
+                    <button type="submit"
+                        class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-rose-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span th:text="#{nav.logout}">退出</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-6 py-12 max-w-6xl">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+
+            <!-- Add Form (Sidebar-ish) -->
+            <div class="lg:col-span-3 space-y-6">
+                <div class="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100">
+                    <h2 class="text-2xl font-bold mb-6 text-slate-800" th:text="#{sub.add.title}">Add Subscription</h2>
+                    <form th:action="@{/subscriptions}" method="post" class="space-y-5">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                    th:text="#{sub.add.source}">Source</label>
+                                <input name="source" type="text" required placeholder="github"
+                                    class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm">
+                            </div>
+                            <!-- Destination Type -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                    th:text="#{sub.add.destinationType}">Destination Type</label>
+                                <div class="flex gap-1 p-1 bg-slate-100 rounded-xl">
+                                    <label class="flex-1 cursor-pointer min-w-0">
+                                        <input type="radio" name="destinationType" value="HTTP" checked
+                                            class="peer sr-only" onchange="toggleDestinationType()">
+                                        <span
+                                            class="flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold text-slate-500 border border-transparent peer-checked:bg-white peer-checked:text-blue-600 peer-checked:border-slate-200 peer-checked:shadow-sm transition-all text-center truncate">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                            </svg>
+                                            <span th:text="#{sub.dest.http}" class="truncate">HTTP</span>
+                                        </span>
+                                    </label>
+                                    <label class="flex-1 cursor-pointer min-w-0">
+                                        <input type="radio" name="destinationType" value="TUNNEL" class="peer sr-only"
+                                            onchange="toggleDestinationType()">
+                                        <span
+                                            class="flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold text-slate-500 border border-transparent peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:border-slate-200 peer-checked:shadow-sm transition-all text-center truncate">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            <span class="truncate">Tunnel</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Target URL Input -->
+                            <div id="targetUrlGroup">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                    th:text="#{sub.add.target}">Target URL</label>
+                                <input name="targetUrl" id="targetUrlInput" type="url"
+                                    placeholder="https://api.myapp.com/webhook"
+                                    class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm">
+                            </div>
+
+                            <!-- Tunnel Info (Hidden by default) -->
+                            <div id="tunnelGroup" class="hidden space-y-4">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                        th:text="#{sub.tunnel.key}">Tunnel Key</label>
+                                    <div class="relative flex items-center">
+                                        <input type="text" name="tunnelKey" id="tunnelKeyInput" readonly
+                                            class="w-full h-10 pl-3 pr-10 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-sm font-mono font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none">
+                                        <button type="button" onclick="generateTunnelKey()"
+                                            class="absolute right-2 p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                                            title="Regenerate Key">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-900">
+                                    <div class="flex items-center gap-2 mb-2 font-bold text-indigo-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
+                                            fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        <span th:text="#{sub.tunnel.usage}"></span>
+                                    </div>
+                                    <div class="bg-indigo-900/5 rounded-lg p-3 font-mono break-all leading-relaxed relative group cursor-pointer hover:bg-indigo-900/10 transition-colors"
+                                        th:attr="onclick='navigator.clipboard.writeText(this.innerText.trim()); showToast(\'' + #{sub.tunnel.copy_success} + '\')'">
+                                        java -jar tunnel-agent.jar --server=ws://localhost:8080/tunnel/connect
+                                        --key=<span id="usageCmdKey" class="font-bold text-indigo-700">KEY</span>
+                                        --target=http://localhost:8080/webhook
+                                        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-indigo-200 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded font-bold"
+                                            th:text="#{sub.tunnel.usage_copy}">
+                                            COPY</div>
+                                    </div>
+                                    <p class="mt-2 text-indigo-600/80 italic" th:text="#{sub.tunnel.copy_hint}">Click
+                                        the command above to copy.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Collapsible Filter Section -->
+                        <details class="group bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                            <summary
+                                class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors select-none">
+                                <span class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400"
+                                        viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    <span th:text="#{sub.add.filterType}">Filter Settings</span>
+                                </span>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180"
+                                    viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </summary>
+                            <div class="p-4 space-y-4 border-t border-slate-200 bg-white">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                        th:text="#{sub.add.filterType}">Filter Type</label>
+                                    <select name="filterType"
+                                        class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm">
+                                        <option value="NONE">None (Pass All)</option>
+                                        <option value="JSON_PATH">JSON Path</option>
+                                        <option value="REGEX">Regex</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                        th:text="#{sub.add.filterRule}">Filter Rule</label>
+                                    <input name="filterRule" type="text" placeholder="$.action == 'opened'"
+                                        class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm">
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- Collapsible Security Section -->
+                        <details class="group bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                            <summary
+                                class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors select-none">
+                                <span class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400"
+                                        viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    <span th:text="#{sub.add.security.title}">Security</span>
+                                </span>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180"
+                                    viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </summary>
+                            <div class="p-4 space-y-4 border-t border-slate-200 bg-white">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                        th:text="#{sub.add.verifyMethod}">Verify Method</label>
+                                    <select name="verifyMethod" id="verifyMethodSelect" onchange="toggleVerifyMethod()"
+                                        class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm">
+                                        <option value="NONE" th:text="#{sub.method.none}">None</option>
+                                        <option value="HMAC_SHA256" th:text="#{sub.method.hmac}">HMAC-SHA256</option>
+                                        <option value="WECHAT_PAY" th:text="#{sub.method.wechat}">WeChat Pay</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                        th:text="#{sub.add.verifySecret}">Secret / Key</label>
+
+                                    <!-- Standard Input for HMAC/None -->
+                                    <div id="standardSecretContainer">
+                                        <input id="verifySecretInput" name="verifySecret" type="password"
+                                            placeholder="Key"
+                                            class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm">
+                                    </div>
+
+                                    <!-- WeChat Pay Cert Manager Trigger -->
+                                    <div id="wechatCertContainer" class="hidden mt-2">
+                                        <div class="flex flex-col gap-2">
+                                            <input id="wechatSecretDisplay" type="text" readonly placeholder="{ ... }"
+                                                class="w-full h-10 px-3 bg-slate-100 border border-slate-200 rounded-lg text-slate-500 text-sm font-mono cursor-not-allowed">
+                                            <button type="button" onclick="openCertModal()"
+                                                class="w-full h-10 px-4 bg-emerald-50 text-emerald-600 font-bold text-sm rounded-lg border border-emerald-200 hover:bg-emerald-100 transition-colors whitespace-nowrap">
+                                                <span th:text="#{sub.cert.manage}">Manage Certs</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+                                        th:text="#{sub.add.signatureHeader}">Signature Header</label>
+                                    <input name="signatureHeader" type="text" placeholder="X-Hub-Signature-256"
+                                        class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-sm">
+                                </div>
+                            </div>
+                        </details>
+
+                        <button type="submit"
+                            class="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-[0.98] mt-2">
+                            <span th:text="#{sub.add.btn}">Add Subscription</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- List (Main) -->
+            <div class="lg:col-span-9">
+                <div
+                    class="bg-white shadow-xl shadow-slate-200/50 rounded-3xl overflow-hidden border border-slate-100 overflow-x-auto">
+                    <table class="w-full text-left min-w-[800px]">
+                        <thead>
+                            <tr class="bg-slate-50/50 border-b border-slate-200">
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"
+                                    th:text="#{list.source}">Source</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"
+                                    th:text="#{sub.list.destination}">Destination</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"
+                                    th:text="#{sub.list.filter}">Filter</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider"
+                                    th:text="#{sub.list.security}">Security</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center"
+                                    th:text="#{sub.list.status}">Status</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right"
+                                    th:text="#{sub.list.actions}">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr th:each="sub : ${subscriptions}" class="group hover:bg-slate-50/50 transition-colors">
+                                <td class="px-4 py-4">
+                                    <span
+                                        class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
+                                        th:text="${sub.source}"></span>
+                                </td>
+                                <td class="px-4 py-4 font-mono text-xs text-slate-500 max-w-[200px]">
+                                    <!-- HTTP Mode -->
+                                    <div th:if="${sub.destinationType == 'HTTP' || sub.destinationType == null}"
+                                        class="truncate" th:text="${sub.targetUrl}" th:title="${sub.targetUrl}"></div>
+
+                                    <!-- Tunnel Mode -->
+                                    <div th:if="${sub.destinationType == 'TUNNEL'}" class="flex flex-col gap-1">
+                                        <div class="flex items-center gap-1.5 font-bold text-indigo-600">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20"
+                                                fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                            TUNNEL
+                                        </div>
+                                        <div class="flex items-center gap-2 bg-slate-100 rounded px-2 py-1">
+                                            <span class="truncate max-w-[120px]" th:text="${sub.tunnelKey}"
+                                                th:title="${sub.tunnelKey}"></span>
+                                            <button type="button" class="text-slate-400 hover:text-blue-600"
+                                                th:data-key="${sub.tunnelKey}"
+                                                onclick="navigator.clipboard.writeText(this.getAttribute('data-key')); showToast('复制成功!')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <!-- Connection Status Check (Simple UI, real status needs API call or WS) -->
+                                        <!-- For now static, can be enhanced with JS poll -->
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 font-mono text-xs text-slate-500">
+                                    <div th:if="${sub.filterType != 'NONE'}" class="flex flex-col gap-1">
+                                        <span class="font-bold text-slate-700 whitespace-nowrap"
+                                            th:text="${sub.filterType}"></span>
+                                        <span class="truncate max-w-[120px]" th:text="${sub.filterRule}"
+                                            th:title="${sub.filterRule}"></span>
+                                    </div>
+                                    <span th:if="${sub.filterType == 'NONE'}" class="text-slate-400">-</span>
+                                </td>
+                                <td class="px-4 py-4 font-mono text-xs text-slate-500">
+                                    <div th:if="${sub.verifyMethod != 'NONE'}" class="flex flex-col gap-1">
+                                        <span
+                                            class="font-bold text-emerald-600 flex items-center gap-1 whitespace-nowrap">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20"
+                                                fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                            <span th:text="${sub.verifyMethod}"></span>
+                                        </span>
+                                    </div>
+                                    <span th:if="${sub.verifyMethod == 'NONE'}" class="text-slate-400">-</span>
+                                </td>
+                                <td class="px-4 py-4 text-center whitespace-nowrap">
+                                    <div class="flex justify-center">
+                                        <span th:if="${sub.active}"
+                                            class="flex items-center gap-1.5 text-emerald-600 font-bold text-sm whitespace-nowrap">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span th:text="#{sub.status.active}">Active</span>
+                                        </span>
+                                        <span th:unless="${sub.active}"
+                                            class="flex items-center gap-1.5 text-slate-400 font-medium text-sm whitespace-nowrap">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                            <span th:text="#{sub.status.paused}">Paused</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 text-right whitespace-nowrap">
+                                    <div class="flex justify-end gap-3">
+                                        <form th:action="@{/subscriptions/{id}/toggle(id=${sub.id})}" method="post">
+                                            <button type="submit"
+                                                class="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors"
+                                                th:text="${sub.active} ? #{sub.op.pause} : #{sub.op.resume}">Toggle</button>
+                                        </form>
+                                        <span class="text-slate-200">|</span>
+                                        <form th:action="@{/subscriptions/{id}/delete(id=${sub.id})}" method="post">
+                                            <button type="button" onclick="openDeleteModal(this)"
+                                                class="text-sm font-semibold text-rose-500 hover:text-rose-700 transition-colors"
+                                                th:text="#{sub.op.delete}">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity opacity-0"
+            id="deleteModalBackdrop"></div>
+
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <!-- Modal Panel -->
+                <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    id="deleteModalPanel">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div
+                                class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                    stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-lg font-semibold leading-6 text-slate-900" id="modal-title"
+                                    th:text="#{sub.op.confirm}">Delete Subscription</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-slate-500" th:text="#{sub.modal.desc}">
+                                        Are you sure you want to delete this subscription? This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                        <button type="button" id="confirmDeleteBtn"
+                            class="inline-flex w-full justify-center rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:ml-3 sm:w-auto transition-colors">
+                            <span th:text="#{sub.op.delete}">Delete</span>
+                        </button>
+                        <button type="button" onclick="closeDeleteModal()"
+                            class="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto transition-colors">
+                            <span th:text="#{sub.op.cancel}">Cancel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificate Manager Modal -->
+    <div id="certModal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <div class="fixed inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity opacity-0" id="certModalBackdrop">
+        </div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    id="certModalPanel">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-lg font-semibold leading-6 text-slate-900" id="modal-title"
+                                    th:text="#{sub.cert.title}">WeChat Pay Certificates</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-slate-500 mb-4" th:utext="#{sub.cert.desc}">
+                                        Manage platform certificates. Verification will use the key matching the
+                                        <code>Wechatpay-Serial</code> header.
+                                    </p>
+
+                                    <!-- Cert List -->
+                                    <div id="certList" class="space-y-4 max-h-[400px] overflow-y-auto p-1">
+                                        <!-- Rows injected by JS -->
+                                    </div>
+
+                                    <button type="button" onclick="addCertRow()"
+                                        class="mt-4 flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
+                                            fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        <span th:text="#{sub.cert.add}">Add Certificate</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-slate-100">
+                        <button type="button" onclick="saveCerts()"
+                            class="inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto transition-colors">
+                            <span th:text="#{sub.cert.save}">Save Configuration</span>
+                        </button>
+                        <button type="button" onclick="closeCertModal()"
+                            class="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto transition-colors">
+                            <span th:text="#{sub.cert.cancel}">Cancel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let targetForm = null;
+        const modal = document.getElementById('deleteModal');
+        const backdrop = document.getElementById('deleteModalBackdrop');
+        const panel = document.getElementById('deleteModalPanel');
+
+        function openDeleteModal(btn) {
+            targetForm = btn.closest('form');
+            modal.classList.remove('hidden');
+
+            // Animation in
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                panel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                panel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+            });
+        }
+
+        function closeDeleteModal() {
+            // Animation out
+            backdrop.classList.add('opacity-0');
+            panel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+            panel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                targetForm = null;
+            }, 200); // Match transition duration
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+            if (targetForm) {
+                targetForm.submit();
+            }
+            closeDeleteModal();
+        });
+
+        // Close on backdrop click
+        modal.addEventListener('click', function (e) {
+            if (e.target === this.firstElementChild || e.target.closest('#deleteModalBackdrop')) { // Logic to detect backdrop click might need refinement based on exact layout, but e.target check usually works if backdrop ends up being the click target or parent
+                // Actually, the backdrop is a separate div layer. The outer modal div covers screen? 
+                // layout: outer fixed inset-0 (z-100), inner backdrop fixed inset-0, inner wrapper fixed inset-0 z-10 overflow-y-auto
+                // Clicking outside the panel ("s:p-0" area) hits the wrapper.
+            }
+        });
+
+        // Better backdrop click handler: The wrapper div handles clicks outside panel
+        document.querySelector('#deleteModal > .fixed.z-10').addEventListener('click', function (e) {
+            if (e.target === this || e.target.closest('.min-h-full') === e.target) {
+                closeDeleteModal();
+            }
+        });
+
+    </script>
+
+    <script th:inline="javascript">
+        // Inject i18n strings for JS
+        const i18n = {
+            serial: /*[[#{sub.cert.serial}]]*/ 'Serial',
+            pem: /*[[#{sub.cert.pem}]]*/ 'PEM',
+            placeholderSerial: /*[[#{sub.cert.placeholder.serial}]]*/ 'Serial...',
+            placeholderPem: /*[[#{sub.cert.placeholder.pem}]]*/ 'PEM...'
+        };
+    </script>
+
+    <script>
+        // --- Certificate Manager Logic ---
+        const certModal = document.getElementById('certModal');
+        const certBackdrop = document.getElementById('certModalBackdrop');
+        const certPanel = document.getElementById('certModalPanel');
+        const verifyMethodSelect = document.getElementById('verifyMethodSelect');
+        const standardSecretContainer = document.getElementById('standardSecretContainer');
+        const wechatCertContainer = document.getElementById('wechatCertContainer');
+        const verifySecretInput = document.getElementById('verifySecretInput'); // The main input (used for HMAC)
+        const wechatSecretDisplay = document.getElementById('wechatSecretDisplay'); // Readonly display for JSON
+
+        // This holds the certs temporary state: [{serial: "", pem: ""}]
+        let currentCerts = [];
+
+        function toggleVerifyMethod() {
+            const method = verifyMethodSelect.value;
+            if (method === 'WECHAT_PAY') {
+                standardSecretContainer.classList.add('hidden');
+                wechatCertContainer.classList.remove('hidden');
+
+                // If switching to Wechat, try to parse current input as JSON to populate display
+                const currentVal = verifySecretInput.value.trim();
+                // Backward compatibility: If it doesn't look like JSON, show it as is (Legacy PEM)
+                wechatSecretDisplay.value = currentVal.startsWith('{') ? currentVal : (currentVal ? '(Legacy Single Certificate)' : '');
+            } else {
+                standardSecretContainer.classList.remove('hidden');
+                wechatCertContainer.classList.add('hidden');
+            }
+        }
+
+        // Init state
+        toggleVerifyMethod();
+
+        function openCertModal() {
+            certModal.classList.remove('hidden');
+
+            // Load current data
+            const currentVal = verifySecretInput.value.trim();
+            currentCerts = [];
+            if (currentVal.startsWith('{')) {
+                try {
+                    const map = JSON.parse(currentVal);
+                    for (const [k, v] of Object.entries(map)) {
+                        currentCerts.push({ serial: k, pem: v });
+                    }
+                } catch (e) {
+                    console.error("Failed to parse JSON", e);
+                }
+            } else if (currentVal) {
+                // Backward compatibility: Treat as single cert with empty serial
+                currentCerts.push({ serial: '', pem: currentVal });
+            }
+
+            if (currentCerts.length === 0) {
+                currentCerts.push({ serial: '', pem: '' });
+            }
+
+            renderCertRows();
+
+            // Animate in
+            requestAnimationFrame(() => {
+                certBackdrop.classList.remove('opacity-0');
+                certPanel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+                certPanel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
+            });
+        }
+
+        function closeCertModal() {
+            // Animate out
+            certBackdrop.classList.add('opacity-0');
+            certPanel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
+            certPanel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
+
+            setTimeout(() => {
+                certModal.classList.add('hidden');
+            }, 200);
+        }
+
+        function renderCertRows() {
+            const container = document.getElementById('certList');
+            container.innerHTML = '';
+
+            currentCerts.forEach((cert, index) => {
+                const row = document.createElement('div');
+                row.className = "bg-slate-50 p-4 rounded-xl border border-slate-200 relative group";
+                row.innerHTML = `
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">${i18n.serial}</label>
+                            <input type="text" value="${cert.serial}" oninput="updateCert(${index}, 'serial', this.value)"
+                                class="w-full h-8 px-2 bg-white border border-slate-300 rounded text-sm font-mono" placeholder="${i18n.placeholderSerial}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">${i18n.pem}</label>
+                            <textarea oninput="updateCert(${index}, 'pem', this.value)"
+                                class="w-full h-24 px-2 py-2 bg-white border border-slate-300 rounded text-[10px] font-mono leading-tight resize-none" 
+                                placeholder="${i18n.placeholderPem}">${cert.pem}</textarea>
+                        </div>
+                    </div>
+                    ${currentCerts.length > 1 ? `
+                    <button onclick="removeCertRow(${index})" class="absolute top-2 right-2 text-slate-400 hover:text-rose-500 p-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>` : ''}
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addCertRow() {
+            currentCerts.push({ serial: '', pem: '' });
+            renderCertRows();
+        }
+
+        function removeCertRow(index) {
+            currentCerts.splice(index, 1);
+            renderCertRows();
+        }
+
+        function updateCert(index, field, value) {
+            currentCerts[index][field] = value;
+        }
+
+        function saveCerts() {
+            // Special case: Single cert with empty serial -> Treat as Legacy (Raw PEM)
+            if (currentCerts.length === 1 && !currentCerts[0].serial.trim() && currentCerts[0].pem.trim()) {
+                const rawPem = currentCerts[0].pem.trim();
+                verifySecretInput.value = rawPem;
+                wechatSecretDisplay.value = '(Legacy Single Certificate)';
+                closeCertModal();
+                return;
+            }
+
+            // Standard case: Build JSON Map
+            const map = {};
+            currentCerts.forEach(c => {
+                if (c.serial.trim()) {
+                    map[c.serial.trim()] = c.pem.trim();
+                }
+            });
+
+            const jsonStr = JSON.stringify(map);
+
+            // Update Inputs
+            verifySecretInput.value = jsonStr;
+            wechatSecretDisplay.value = jsonStr;
+
+            closeCertModal();
+        }
+    </script>
+
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 transform transition-all duration-300 translate-y-24 opacity-0 z-50">
+        <div class="glass-card border border-slate-200 shadow-xl rounded-xl px-6 py-4 flex items-center gap-3">
+            <div class="bg-emerald-100 text-emerald-600 rounded-full p-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clip-rule="evenodd" />
+                </svg>
+            </div>
+            <span id="toastMessage" class="text-sm font-semibold text-slate-700">Operation successful</span>
+        </div>
+    </div>
+
+    <script>
+        // --- Toast Logic ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toastMessage');
+
+            msg.innerText = message;
+            toast.classList.remove('translate-y-24', 'opacity-0');
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3000);
+        }
+
+        // --- Tunnel Toggle Logic ---
+        function toggleDestinationType() {
+            const type = document.querySelector('input[name="destinationType"]:checked').value;
+            const targetUrlGroup = document.getElementById('targetUrlGroup');
+            const targetUrlInput = document.getElementById('targetUrlInput');
+            const tunnelGroup = document.getElementById('tunnelGroup');
+            const tunnelKeyInput = document.getElementById('tunnelKeyInput');
+
+            if (type === 'TUNNEL') {
+                targetUrlGroup.classList.add('hidden');
+                tunnelGroup.classList.remove('hidden');
+                targetUrlInput.removeAttribute('required');
+
+                // Auto generate key if empty
+                if (!tunnelKeyInput.value || tunnelKeyInput.value === '[Generated on Save]') {
+                    generateTunnelKey();
+                }
+            } else {
+                targetUrlGroup.classList.remove('hidden');
+                tunnelGroup.classList.add('hidden');
+                targetUrlInput.setAttribute('required', '');
+            }
+        }
+
+        function generateTunnelKey() {
+            // Check crypto API availability
+            let uuid = '';
+            if (crypto && crypto.randomUUID) {
+                uuid = crypto.randomUUID();
+            } else {
+                // Fallback
+                uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+            document.getElementById('tunnelKeyInput').value = uuid;
+            updateUsageCmd(uuid);
+        }
+
+        function updateUsageCmd(key) {
+            const el = document.getElementById('usageCmdKey');
+            if (el) el.innerText = key;
+        }
+    </script>
+</body>
+
+</html>

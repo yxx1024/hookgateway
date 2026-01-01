@@ -1,0 +1,183 @@
+package com.example.hookgateway.websocket;
+
+import com.example.hookgateway.model.TunnelBroadcastMessage;
+import com.example.hookgateway.model.WebhookEvent;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Tunnel Session Manager
+ * 管理活跃的 WebSocket Tunnel 连接，支持分布式环境下的消息路由
+ */
+@Component
+@Slf4j
+@RequiredArgsConstructor
+public class TunnelSessionManager {
+
+    private final ObjectMapper objectMapper;
+    
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private StringRedisTemplate redisTemplate;
+
+    // Key: tunnelKey, Value: WebSocketSession
+    private final Map<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
+
+    /**
+     * 将 Webhook 事件路由到正确的 Tunnel 客户端
+     * 如果本地不存在连接，则通过 Redis 广播到集群其他节点
+     */
+    public String routeEvent(WebhookEvent event, String tunnelKey) {
+        WebSocketSession session = getSession(tunnelKey);
+        
+        if (session != null && session.isOpen()) {
+            return deliverToLocal(event, tunnelKey, session);
+        }
+
+        // 本地没有活跃连接，尝试广播到集群
+        if (redisTemplate != null) {
+            log.info("[TunnelManager] Local session missing for {}, broadcasting to cluster", tunnelKey);
+            broadcastToCluster(event, tunnelKey);
+            return "QUEUED: Broadcasted to cluster at " + LocalDateTime.now();
+        }
+
+        return "ERROR: Tunnel not connected and Redis not available";
+    }
+
+    /**
+     * 处理来自集群其他节点的广播消息
+     */
+    public void handleBroadcast(TunnelBroadcastMessage msg) {
+        WebSocketSession session = getSession(msg.getTunnelKey());
+        if (session != null && session.isOpen()) {
+            log.info("[TunnelManager] Handling cluster broadcast for tunnel: {}", msg.getTunnelKey());
+            try {
+                java.util.Map<String, Object> tunnelMessage = new java.util.HashMap<>();
+                tunnelMessage.put("type", "WEBHOOK");
+                tunnelMessage.put("eventId", msg.getEventId());
+                tunnelMessage.put("source", msg.getSource());
+                tunnelMessage.put("method", msg.getMethod());
+                tunnelMessage.put("headers", msg.getHeaders() != null ? msg.getHeaders() : "");
+                tunnelMessage.put("payload", msg.getPayload() != null ? msg.getPayload() : "");
+
+                String jsonMessage = objectMapper.writeValueAsString(tunnelMessage);
+                session.sendMessage(new TextMessage(jsonMessage));
+            } catch (Exception e) {
+                log.error("[TunnelManager] Failed to deliver broadcasted message to local tunnel", e);
+            }
+        }
+    }
+
+    private String deliverToLocal(WebhookEvent event, String tunnelKey, WebSocketSession session) {
+        try {
+            java.util.Map<String, Object> tunnelMessage = new java.util.HashMap<>();
+            tunnelMessage.put("type", "WEBHOOK");
+            tunnelMessage.put("eventId", event.getId());
+            tunnelMessage.put("source", event.getSource());
+            tunnelMessage.put("method", event.getMethod());
+            tunnelMessage.put("headers", event.getHeaders() != null ? event.getHeaders() : "");
+            tunnelMessage.put("payload", event.getPayload() != null ? event.getPayload() : "");
+
+            String jsonMessage = objectMapper.writeValueAsString(tunnelMessage);
+            session.sendMessage(new TextMessage(jsonMessage));
+
+            log.info("[Tunnel] Sent webhook {} to local tunnel {}", event.getId(), tunnelKey);
+            return "SUCCESS: Delivered to local tunnel at " + LocalDateTime.now();
+        } catch (Exception e) {
+            log.error("[Tunnel] Failed to send to local tunnel {}", tunnelKey, e);
+            return "ERROR: WebSocket delivery failed - " + e.getMessage();
+        }
+    }
+
+    private void broadcastToCluster(WebhookEvent event, String tunnelKey) {
+        try {
+            TunnelBroadcastMessage msg = TunnelBroadcastMessage.builder()
+                    .tunnelKey(tunnelKey)
+                    .eventId(event.getId())
+                    .source(event.getSource())
+                    .method(event.getMethod())
+                    .headers(event.getHeaders())
+                    .payload(event.getPayload())
+                    .build();
+
+            String json = objectMapper.writeValueAsString(msg);
+            redisTemplate.convertAndSend(com.example.hookgateway.config.RedisPubSubConfig.TUNNEL_CHANNEL, json);
+        } catch (Exception e) {
+            log.error("[TunnelManager] Failed to broadcast tunnel message", e);
+        }
+    }
+
+    /**
+     * 注册一个新的 Tunnel 连接
+     */
+    public void registerSession(String tunnelKey, WebSocketSession session) {
+        // 如果已存在，先关闭旧连接
+        WebSocketSession oldSession = activeSessions.get(tunnelKey);
+        if (oldSession != null && oldSession.isOpen()) {
+            try {
+                log.info("[TunnelSessionManager] Closing old session for tunnelKey: {}", tunnelKey);
+                oldSession.close();
+            } catch (IOException e) {
+                log.error("[TunnelSessionManager] Error closing old session", e);
+            }
+        }
+
+        activeSessions.put(tunnelKey, session);
+        log.info("[TunnelSessionManager] Registered new session for tunnelKey: {}, Total active: {}",
+                tunnelKey, activeSessions.size());
+    }
+
+    /**
+     * 移除指定的 Tunnel 连接，增加 session 校验防止竞态
+     */
+    public void removeSession(String tunnelKey, WebSocketSession session) {
+        if (tunnelKey == null || session == null) return;
+        
+        // 只有当 Map 中的 session 是当前要移除的那个 session 时才移除
+        // 防止：新连接 A 覆盖了旧连接 B 后，B 的 onClose 触发误删了 A
+        boolean removed = activeSessions.remove(tunnelKey, session);
+        if (removed) {
+            log.info("[TunnelSessionManager] Removed session for tunnelKey: {}, Total active: {}",
+                    tunnelKey, activeSessions.size());
+        }
+    }
+
+    /**
+     * 根据 tunnelKey 获取 WebSocket Session
+     */
+    public WebSocketSession getSession(String tunnelKey) {
+        WebSocketSession session = activeSessions.get(tunnelKey);
+        if (session != null && !session.isOpen()) {
+            // 清理已关闭的连接
+            activeSessions.remove(tunnelKey);
+            return null;
+        }
+        return session;
+    }
+
+    /**
+     * 检查 Tunnel 是否在线
+     */
+    public boolean isConnected(String tunnelKey) {
+        WebSocketSession session = getSession(tunnelKey);
+        return session != null && session.isOpen();
+    }
+
+    /**
+     * 获取活跃连接数
+     */
+    public int getActiveConnectionCount() {
+        // 清理已关闭的连接
+        activeSessions.entrySet().removeIf(entry -> !entry.getValue().isOpen());
+        return activeSessions.size();
+    }
+}
