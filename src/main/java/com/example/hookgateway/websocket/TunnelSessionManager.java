@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TunnelSessionManager {
 
     private final ObjectMapper objectMapper;
+    private static final String EVENT_TUNNEL_PREFIX = "webhook:event:tunnel:";
     
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private StringRedisTemplate redisTemplate;
@@ -37,6 +38,9 @@ public class TunnelSessionManager {
      * 如果本地不存在连接，则通过 Redis 广播到集群其他节点
      */
     public String routeEvent(WebhookEvent event, String tunnelKey) {
+        // V13: BOLA Protection - Register mapping before routing
+        registerEventTunnelMapping(event.getId(), tunnelKey);
+
         WebSocketSession session = getSession(tunnelKey);
         
         if (session != null && session.isOpen()) {
@@ -179,5 +183,25 @@ public class TunnelSessionManager {
         // 清理已关闭的连接
         activeSessions.entrySet().removeIf(entry -> !entry.getValue().isOpen());
         return activeSessions.size();
+    }
+
+    /**
+     * V13: 将 Event ID 与允许处理该事件的 Tunnel Key 绑定到 Redis
+     */
+    public void registerEventTunnelMapping(Long eventId, String tunnelKey) {
+        if (redisTemplate != null && eventId != null && tunnelKey != null) {
+            String key = EVENT_TUNNEL_PREFIX + eventId;
+            redisTemplate.opsForValue().set(key, tunnelKey, java.time.Duration.ofHours(24));
+        }
+    }
+
+    /**
+     * V13: 从 Redis 获取该事件绑定的 Tunnel Key
+     */
+    public String getTunnelKeyForEvent(Long eventId) {
+        if (redisTemplate != null && eventId != null) {
+            return redisTemplate.opsForValue().get(EVENT_TUNNEL_PREFIX + eventId);
+        }
+        return null; // Fallback or if Redis is down, validation might be bypassed or fail based on policy
     }
 }

@@ -18,9 +18,13 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final TunnelWebSocketHandler tunnelWebSocketHandler;
 
+    @org.springframework.beans.factory.annotation.Value("${app.security.websocket.allowed-origins:*}")
+    private String allowedOrigins;
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        String[] origins = allowedOrigins.split(",");
         registry.addHandler(tunnelWebSocketHandler, "/tunnel/connect")
-                .setAllowedOrigins("*"); // 生产环境应限制为特定域名
+                .setAllowedOrigins(origins);
     }
 }

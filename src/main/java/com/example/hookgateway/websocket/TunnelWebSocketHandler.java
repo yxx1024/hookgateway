@@ -84,6 +84,14 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
                 String status = (String) msg.get("status");
                 String detail = (String) msg.get("detail");
 
+                // 安全加固 (BOLA): 验证该事件是否确实路由给了该隧道
+                String expectedTunnelKey = sessionManager.getTunnelKeyForEvent(eventId);
+                if (expectedTunnelKey != null && !expectedTunnelKey.equals(tunnelKey)) {
+                    log.warn("[TunnelWebSocket] BOLA ATTEMPT DETECTED! Tunnel {} tried to ACK event {} which belongs to tunnel {}", 
+                             tunnelKey, eventId, expectedTunnelKey);
+                    return;
+                }
+
                 // 安全加固：Status 字段校验 (允许系统定义的标准状态)
                 java.util.List<String> allowedStatuses = java.util.Arrays.asList("SUCCESS", "FAILED", "PARTIAL_SUCCESS", "RECEIVED");
                 if (!allowedStatuses.contains(status)) {

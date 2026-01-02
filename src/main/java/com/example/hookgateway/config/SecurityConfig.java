@@ -44,7 +44,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**", "/error")
                                                 .permitAll()
                                                 // Actuator 端点需要认证（生产环境安全）
-                                                .requestMatchers("/actuator/**").authenticated()
+                                                .requestMatchers("/actuator/**").hasRole("ADMIN")
                                                 // 其他所有请求需要认证
                                                 .anyRequest().authenticated())
                                 .formLogin(form -> form

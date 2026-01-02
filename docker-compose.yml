@@ -37,10 +37,10 @@ services:
     ports:
       - "3306:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_DATABASE=webhook
-      - MYSQL_USER=hookgateway
-      - MYSQL_PASSWORD=hookgateway123
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:rootpassword}
+      - MYSQL_DATABASE=${MYSQL_DB:webhook}
+      - MYSQL_USER=${MYSQL_USER:hookgateway}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:hookgateway123}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init_mysql.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -79,10 +79,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DB_URL=jdbc:mysql://mysql:3306/webhook?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - DB_URL=${DB_URL:jdbc:mysql://mysql:3306/webhook?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
       - DB_DRIVER=com.mysql.cj.jdbc.Driver
-      - DB_USERNAME=hookgateway
-      - DB_PASSWORD=hookgateway123
+      - DB_USERNAME=${DB_USERNAME:hookgateway}
+      - DB_PASSWORD=${DB_PASSWORD:hookgateway123}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - DISTRIBUTION_MODE=redis

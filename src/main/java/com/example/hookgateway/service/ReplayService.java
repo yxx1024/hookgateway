@@ -10,8 +10,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-@Service
+@org.springframework.stereotype.Service
+@lombok.RequiredArgsConstructor
 public class ReplayService {
+
+    private final com.example.hookgateway.utils.UrlValidator urlValidator;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
@@ -93,6 +96,19 @@ public class ReplayService {
 
     public ReplayResult replay(String method, String headersRaw, String payload, String targetUrl) {
         try {
+            // V13: SSRF Protection
+            if (!urlValidator.isSafeUrl(targetUrl)) {
+                String errorMsg = "Blocked potential SSRF target: " + targetUrl;
+                appendLog(errorMsg);
+                return ReplayResult.builder()
+                        .success(false)
+                        .statusCode(-1)
+                        .message(errorMsg)
+                        .targetUrl(targetUrl)
+                        .log("")
+                        .build();
+            }
+
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(targetUrl))
                     .method(method, HttpRequest.BodyPublishers.ofString(payload == null ? "" : payload));
