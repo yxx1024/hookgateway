@@ -4,6 +4,7 @@
 <head>
     <title th:text="#{detail.title}">Event Details</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/js/ui.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap"
         rel="stylesheet">
     <!-- CSRF Token -->
@@ -189,19 +190,7 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 right-6 transform transition-all duration-300 translate-y-24 opacity-0 z-50">
-        <div class="glass-card border border-slate-200 shadow-xl rounded-xl px-6 py-4 flex items-center gap-3">
-            <div class="bg-emerald-100 text-emerald-600 rounded-full p-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clip-rule="evenodd" />
-                </svg>
-            </div>
-            <span id="toastMessage" class="text-sm font-semibold text-slate-700">Message</span>
-        </div>
-    </div>
+    <!-- Toast Container handled by HookUI -->
 
     <script th:inline="javascript">
         const eventId = /*[[${event.id}]]*/ null;
@@ -258,14 +247,14 @@
                 // 滚动到结果区域
                 resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } catch (e) {
-                alert('Request Failed: ' + e.message);
+                HookUI.alert(e.message, 'Request Failed');
             }
         }
 
         async function replay() {
             const targetUrl = document.getElementById('targetUrl').value;
             if (!targetUrl) {
-                alert('Please enter a target URL');
+                HookUI.alert('Please enter a target URL');
                 return;
             }
             const btn = event.target.closest('button');
@@ -294,19 +283,7 @@
 
         function copyToClipboard(id) {
             const text = document.getElementById(id).innerText;
-            navigator.clipboard.writeText(text).then(() => showToast(copySuccessMsg));
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toastMessage');
-
-            toastMessage.textContent = message;
-            toast.classList.remove('translate-y-24', 'opacity-0');
-
-            setTimeout(() => {
-                toast.classList.add('translate-y-24', 'opacity-0');
-            }, 3000);
+            navigator.clipboard.writeText(text).then(() => HookUI.toast(copySuccessMsg));
         }
 
         document.addEventListener('DOMContentLoaded', () => {

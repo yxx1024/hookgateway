@@ -4,6 +4,7 @@
 <head>
     <title th:text="#{sub.title}">Subscriptions</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/js/ui.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -141,7 +142,7 @@
                                         <span th:text="#{sub.tunnel.usage}"></span>
                                     </div>
                                     <div class="bg-indigo-900/5 rounded-lg p-3 font-mono break-all leading-relaxed relative group cursor-pointer hover:bg-indigo-900/10 transition-colors"
-                                        th:attr="onclick='navigator.clipboard.writeText(this.innerText.trim()); showToast(\'' + #{sub.tunnel.copy_success} + '\')'">
+                                        th:attr="onclick='navigator.clipboard.writeText(this.innerText.trim()); HookUI.toast(\'' + #{sub.tunnel.copy_success} + '\')'">
                                         java -jar tunnel-agent.jar --server=ws://localhost:8080/tunnel/connect
                                         --key=<span id="usageCmdKey" class="font-bold text-indigo-700">KEY</span>
                                         --target=http://localhost:8080/webhook
@@ -322,7 +323,7 @@
                                                 th:title="${sub.tunnelKey}"></span>
                                             <button type="button" class="text-slate-400 hover:text-blue-600"
                                                 th:data-key="${sub.tunnelKey}"
-                                                onclick="navigator.clipboard.writeText(this.getAttribute('data-key')); showToast('复制成功!')">
+                                                onclick="navigator.clipboard.writeText(this.getAttribute('data-key')); HookUI.toast('复制成功!')">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -396,53 +397,7 @@
         </div>
     </main>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog"
-        aria-modal="true">
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity opacity-0"
-            id="deleteModalBackdrop"></div>
-
-        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <!-- Modal Panel -->
-                <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    id="deleteModalPanel">
-                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <div
-                                class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 sm:mx-0 sm:h-10 sm:w-10">
-                                <svg class="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                    stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                                </svg>
-                            </div>
-                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                <h3 class="text-lg font-semibold leading-6 text-slate-900" id="modal-title"
-                                    th:text="#{sub.op.confirm}">Delete Subscription</h3>
-                                <div class="mt-2">
-                                    <p class="text-sm text-slate-500" th:text="#{sub.modal.desc}">
-                                        Are you sure you want to delete this subscription? This action cannot be undone.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                        <button type="button" id="confirmDeleteBtn"
-                            class="inline-flex w-full justify-center rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:ml-3 sm:w-auto transition-colors">
-                            <span th:text="#{sub.op.delete}">Delete</span>
-                        </button>
-                        <button type="button" onclick="closeDeleteModal()"
-                            class="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto transition-colors">
-                            <span th:text="#{sub.op.cancel}">Cancel</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Custom Modals Handled by HookUI -->
 
     <!-- Certificate Manager Modal -->
     <div id="certModal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog"
@@ -499,57 +454,16 @@
     </div>
 
     <script>
-        let targetForm = null;
-        const modal = document.getElementById('deleteModal');
-        const backdrop = document.getElementById('deleteModalBackdrop');
-        const panel = document.getElementById('deleteModalPanel');
+        const confirmTitle = /*[[#{sub.op.confirm}]]*/ 'Delete Subscription';
+        const confirmMsg = /*[[#{sub.modal.desc}]]*/ 'Are you sure you want to delete this subscription? This action cannot be undone.';
 
-        function openDeleteModal(btn) {
-            targetForm = btn.closest('form');
-            modal.classList.remove('hidden');
-
-            // Animation in
-            requestAnimationFrame(() => {
-                backdrop.classList.remove('opacity-0');
-                panel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
-                panel.classList.add('opacity-100', 'translate-y-0', 'sm:scale-100');
-            });
+        async function openDeleteModal(btn) {
+            const form = btn.closest('form');
+            const result = await HookUI.confirm(confirmMsg, confirmTitle);
+            if (result) {
+                form.submit();
+            }
         }
-
-        function closeDeleteModal() {
-            // Animation out
-            backdrop.classList.add('opacity-0');
-            panel.classList.remove('opacity-100', 'translate-y-0', 'sm:scale-100');
-            panel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
-
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                targetForm = null;
-            }, 200); // Match transition duration
-        }
-
-        document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
-            if (targetForm) {
-                targetForm.submit();
-            }
-            closeDeleteModal();
-        });
-
-        // Close on backdrop click
-        modal.addEventListener('click', function (e) {
-            if (e.target === this.firstElementChild || e.target.closest('#deleteModalBackdrop')) { // Logic to detect backdrop click might need refinement based on exact layout, but e.target check usually works if backdrop ends up being the click target or parent
-                // Actually, the backdrop is a separate div layer. The outer modal div covers screen? 
-                // layout: outer fixed inset-0 (z-100), inner backdrop fixed inset-0, inner wrapper fixed inset-0 z-10 overflow-y-auto
-                // Clicking outside the panel ("s:p-0" area) hits the wrapper.
-            }
-        });
-
-        // Better backdrop click handler: The wrapper div handles clicks outside panel
-        document.querySelector('#deleteModal > .fixed.z-10').addEventListener('click', function (e) {
-            if (e.target === this || e.target.closest('.min-h-full') === e.target) {
-                closeDeleteModal();
-            }
-        });
 
     </script>
 
@@ -721,78 +635,52 @@
             backdrop-filter: blur(12px);
         }
     </style>
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 right-6 transform transition-all duration-300 translate-y-24 opacity-0 z-50">
-        <div class="glass-card border border-slate-200 shadow-xl rounded-xl px-6 py-4 flex items-center gap-3">
-            <div class="bg-emerald-100 text-emerald-600 rounded-full p-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clip-rule="evenodd" />
-                </svg>
-            </div>
-            <span id="toastMessage" class="text-sm font-semibold text-slate-700">Operation successful</span>
-        </div>
-    </div>
+    <!-- Toast handled by HookUI -->
 
-    <script>
-        // --- Toast Logic ---
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            const msg = document.getElementById('toastMessage');
+    // --- Tunnel Toggle Logic ---
+    function toggleDestinationType() {
+    const type = document.querySelector('input[name="destinationType"]:checked').value;
+    const targetUrlGroup = document.getElementById('targetUrlGroup');
+    const targetUrlInput = document.getElementById('targetUrlInput');
+    const tunnelGroup = document.getElementById('tunnelGroup');
+    const tunnelKeyInput = document.getElementById('tunnelKeyInput');
 
-            msg.innerText = message;
-            toast.classList.remove('translate-y-24', 'opacity-0');
+    if (type === 'TUNNEL') {
+    targetUrlGroup.classList.add('hidden');
+    tunnelGroup.classList.remove('hidden');
+    targetUrlInput.removeAttribute('required');
 
-            setTimeout(() => {
-                toast.classList.add('translate-y-24', 'opacity-0');
-            }, 3000);
-        }
+    // Auto generate key if empty
+    if (!tunnelKeyInput.value || tunnelKeyInput.value === '[Generated on Save]') {
+    generateTunnelKey();
+    }
+    } else {
+    targetUrlGroup.classList.remove('hidden');
+    tunnelGroup.classList.add('hidden');
+    targetUrlInput.setAttribute('required', '');
+    }
+    }
 
-        // --- Tunnel Toggle Logic ---
-        function toggleDestinationType() {
-            const type = document.querySelector('input[name="destinationType"]:checked').value;
-            const targetUrlGroup = document.getElementById('targetUrlGroup');
-            const targetUrlInput = document.getElementById('targetUrlInput');
-            const tunnelGroup = document.getElementById('tunnelGroup');
-            const tunnelKeyInput = document.getElementById('tunnelKeyInput');
+    function generateTunnelKey() {
+    // Check crypto API availability
+    let uuid = '';
+    if (crypto && crypto.randomUUID) {
+    uuid = crypto.randomUUID();
+    } else {
+    // Fallback
+    uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+    });
+    }
+    document.getElementById('tunnelKeyInput').value = uuid;
+    updateUsageCmd(uuid);
+    }
 
-            if (type === 'TUNNEL') {
-                targetUrlGroup.classList.add('hidden');
-                tunnelGroup.classList.remove('hidden');
-                targetUrlInput.removeAttribute('required');
-
-                // Auto generate key if empty
-                if (!tunnelKeyInput.value || tunnelKeyInput.value === '[Generated on Save]') {
-                    generateTunnelKey();
-                }
-            } else {
-                targetUrlGroup.classList.remove('hidden');
-                tunnelGroup.classList.add('hidden');
-                targetUrlInput.setAttribute('required', '');
-            }
-        }
-
-        function generateTunnelKey() {
-            // Check crypto API availability
-            let uuid = '';
-            if (crypto && crypto.randomUUID) {
-                uuid = crypto.randomUUID();
-            } else {
-                // Fallback
-                uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                    return v.toString(16);
-                });
-            }
-            document.getElementById('tunnelKeyInput').value = uuid;
-            updateUsageCmd(uuid);
-        }
-
-        function updateUsageCmd(key) {
-            const el = document.getElementById('usageCmdKey');
-            if (el) el.innerText = key;
-        }
+    function updateUsageCmd(key) {
+    const el = document.getElementById('usageCmdKey');
+    if (el) el.innerText = key;
+    }
     </script>
 </body>
 

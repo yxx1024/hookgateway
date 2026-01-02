@@ -4,6 +4,7 @@
 <head>
     <title th:text="#{settings.title}">Settings</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/js/ui.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- CSRF Token -->
     <meta name="_csrf" th:content="${_csrf.token}" />
@@ -279,38 +280,7 @@
             }
         });
 
-        function showStatus(type, message, autoHide = true) {
-            const statusEl = document.getElementById('statusMessage');
-
-            // Clear previous timeout if exists
-            if (statusTimeout) {
-                clearTimeout(statusTimeout);
-                statusTimeout = null;
-            }
-
-            let classes = 'mt-4 p-4 rounded-xl ';
-            if (type === 'success') {
-                classes += 'bg-emerald-50 border border-emerald-200 text-emerald-700';
-            } else if (type === 'error') {
-                classes += 'bg-rose-50 border border-rose-200 text-rose-700';
-            } else {
-                classes += 'bg-blue-50 border border-blue-200 text-blue-700';
-            }
-
-            statusEl.className = classes;
-            if (!message) {
-                message = 'Unknown status';
-            }
-            // 使用 textContent 替代 innerHTML，防止 XSS
-            statusEl.textContent = message;
-            statusEl.classList.remove('hidden');
-
-            if (autoHide) {
-                statusTimeout = setTimeout(() => {
-                    statusEl.classList.add('hidden');
-                }, 5000);
-            }
-        }
+        // Status Message handled by HookUI
 
         // Load config on page load
         loadConfig();
