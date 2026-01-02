@@ -1,11 +1,11 @@
-# Webhook Gateway - 项目交接文档 (V10)
+# Webhook Gateway - 项目交接文档 (V12)
 
 ## 📌 项目概览
 **Webhook Gateway** 是一个轻量级 Webhook 路由与管理网关，用于接收、持久化、过滤并分发 Webhook 事件。它解决了异构系统对接时，下游服务被无关事件干扰、无法追踪投递历史以及缺乏安全验证的问题。
 
-- **当前版本**: V10 (Stable Release)
-- **最后更新**: 2025-12-31
-- **核心能力**: 摄入存储、多路分发、指数退避重试、**内容级过滤**、**实时 QPS 监控**、手动重放、自动清理、**高级签名验证 (HMAC + RSA)**、**Webhook Tunneling (内网穿透)**。
+- **当前版本**: V12 (Performance & Replay Enhanced)
+- **最后更新**: 2026-01-02
+- **核心能力**: 摄入存储、多路分发、**全链路指数退避重试**、内容级过滤、实时 QPS 监控、**Tunnel 重放**、自动清理、高级签名验证 (HMAC + RSA)、Webhook Tunneling (内网穿透)。
 
 ---
 
@@ -67,24 +67,17 @@
 ## 📂 项目结构导读
 ---
  
- ## 🚀 V11: Webhook Tunneling (内网穿透)
- 本版本引入了基于 WebSocket 的隧道功能，允许处于内网或防火墙后的应用接收 Webhook 事件，无需配置公网 IP 或 NAT。
- 
- ### 1. 设计原理
- - **持久连接**: 客户端（`tunnel-agent`）通过 WebSocket 与网关建立长连接。
- - **密钥鉴权**: 客户端在握手时需在 Header 中携带 `X-Tunnel-Key`。网关通过 `SubscriptionRepository.findByTunnelKey` 进行高效验证。
- - **分布式路由 (Pub/Sub)**: 当 Webhook 摄入实例与客户端连接实例不一致时，通过 Redis 频道 `tunnel:broadcast` 实现跨节点转发。
- 
- ### 2. 关键组件
- - `com.example.hookgateway.websocket.TunnelSessionManager`: 维护 `tunnel-key` 与 `WebSocketSession` 的映射，支持状态查询。
- - `com.example.hookgateway.websocket.TunnelWebSocketHandler`: 处理 WebSocket握手、消息心跳及断开重连逻辑。
- - `com.example.hookgateway.controller.TunnelController`: 提供 Tunnel Key 生成及在线状态监控 API。
- - `tunnel-agent/`: Java 编写的示例客户端，用于接收并转发隧道消息。
- 
- ### 3. 隧道相关 API
- - **WebSocket 端点**: `ws://{host}:8080/tunnel/connect` (需携带 Header `X-Tunnel-Key`)
- - **生成 Key**: `POST /api/tunnel/generate-key`
- - **状态查询**: `GET /api/tunnel/status/{tunnelKey}`
+### 3. Webhook Tunneling (内网穿透)
+本版本引入了基于 WebSocket 的隧道功能，允许处于内网或防火墙后的应用接收 Webhook 事件，无需配置公网 IP 或 NAT。
+
+- **持久连接**: 客户端（`tunnel-agent`）通过 WebSocket 与网关建立长连接。
+- **分布式路由 (Pub/Sub)**: 支持跨节点转发，连接在 A 实例的客户端可接收 B 实例摄入的消息。
+- **[NEW] Tunnel 重放**: 详情页可自动检测事件的历史隧道 Key，支持一键将历史事件重新泵入内网隧道，无需手动拼凑 URL。
+
+### 4. 生产级重试与状态机 (New V12)
+- **全链路指数退避**: 手动重放现在也支持 `2s -> 4s -> 8s` 的指数退避重试，并清晰记录 `Attempt #N` 轨迹。
+- **智能状态机**: 修复了重放状态覆盖问题。手动重放失败时，如果之前已成功，则状态降级为 `PARTIAL_SUCCESS`（黄色），而非直接覆盖，确保分发状态的真实性。
+- **泛型安全**: 消除了 WebSocket Handler 中的所有 Unchecked 编译警告。
  
  ---
  
@@ -98,13 +91,14 @@
 
 ---
 
-## 🔮 V11 待办 (Future Plans)
+## 🔮 V13 待办 (Future Plans)
 1. **Payload 变换 (Transformation)**: 实现 Webhook 内容转换功能（如使用 Freemarker/Velocity 模板引擎调整转发格式）。
-2. **性能压测**: 对 Write-Behind 模式进行极限压测，验证 `app.ingest.mode=redis` 对 QPS 的提升效果。
+2. **多租户隔离**: 引入 Workspace 概念，实现不同团队/项目的配置物理隔离。
 
 ---
 
 ## 🤖 接手 AI 指引
-本阶段不仅完成了核心功能（验签、Redis 分发），还**提前完成了** P0 级的性能优化任务——**Write-Behind (异步写入)**，并完善了微信支付的**证书轮换**支持。
-项目现在具备了应对高并发和企业级安全需求的基础。
-接下来的核心开发任务是 **Payload 变换**，这将赋予网关强大的数据适配能力。
+本阶段（V12）极大地增强了系统的**鲁棒性与开发体验**。
+1. **核心突破**：实现了 Webhook Tunnel 的**闭环重放**，让内网调试变得极其高效；
+2. **生产加固**：重写了重放逻辑，引入了透明的**指数退避重试**（Attempt-based logging），并建立了健壮的状态流转机制。
+项目现在已经达到了“生产级”的稳定度。接下来的重点应重回 **Payload 变换**，这是将网关打造成全能集成平台的最后一块拼图。

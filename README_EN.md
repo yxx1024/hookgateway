@@ -22,9 +22,9 @@
 | 📥 **Heterogeneous Ingestion** | Unified reception of Webhook requests from different sources |
 | 🛡️ **Security Verification** | HMAC-SHA256 / WeChat Pay RSA-SHA256 |
 | 🔍 **Content Filtering** | JSONPath & Regex rules |
-| 🔁 **Smart Retry** | Exponential backoff + Dead Letter Queue (DLQ) |
-| 📊 **Real-time Monitoring** | QPS Dashboard + Delivery Reports |
-| 🔒 **User Authentication** | Login + Forced Password Change on First Login |
+| 🔃 **One-Click Replay** | Replay via URL or Tunnel with one click |
+| 🔁 **Smart Retry** | Full-link Exponential Backoff + Attempt Tracking |
+| 🚇 **Tunnel Mode** | WebSocket Tunneling with Distributed Broadcast support |
 | 🐳 **Docker Support** | One-click deployment, H2/MySQL/Redis optional |
 
 ## 🌟 Use Cases
