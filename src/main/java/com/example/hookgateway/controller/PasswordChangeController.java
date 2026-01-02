@@ -20,7 +20,8 @@ public class PasswordChangeController {
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/change-password")
-    public String showChangePasswordPage() {
+    public String showChangePasswordPage(Model model) {
+        model.addAttribute("currentUri", "/settings");
         return "change-password";
     }
 

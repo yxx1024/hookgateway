@@ -27,9 +27,53 @@
     </style>
 </head>
 
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-slate-50 min-h-screen text-slate-900">
+    <!-- Top Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/80 border-b border-slate-200 backdrop-blur-md">
+        <div class="container mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600"
+                    th:text="#{app.title}">Webhook Gateway</h1>
+                <div class="hidden md:flex gap-1">
+                    <a href="/" class="px-4 py-2 rounded-md font-medium transition-colors"
+                        th:classappend="${currentUri == '/' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}"
+                        th:text="#{nav.dashboard}">Dashboard</a>
+                    <a href="/subscriptions" class="px-4 py-2 rounded-md font-medium transition-colors"
+                        th:classappend="${currentUri == '/subscriptions' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}"
+                        th:text="#{nav.subscriptions}">Subscriptions</a>
+                    <a href="/settings" class="px-4 py-2 rounded-md font-medium transition-colors"
+                        th:classappend="${currentUri == '/settings' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}"
+                        th:text="#{nav.settings}">Settings</a>
+                    <a href="/monitoring" class="px-4 py-2 rounded-md font-medium transition-colors"
+                        th:classappend="${currentUri == '/monitoring' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}"
+                        th:text="#{nav.monitoring}">Monitoring</a>
+                </div>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center bg-slate-100 rounded-lg p-1 text-xs font-semibold">
+                    <a th:href="@{${currentUri}(lang='zh')}" class="px-3 py-1.5 rounded-md transition-all"
+                        th:classappend="${#locale.language == 'zh' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}">中文</a>
+                    <a th:href="@{${currentUri}(lang='en')}" class="px-3 py-1.5 rounded-md transition-all"
+                        th:classappend="${#locale.language == 'en' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}">EN</a>
+                </div>
+                <!-- Logout Button -->
+                <form th:action="@{/logout}" method="post" class="inline">
+                    <button type="submit"
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-rose-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span th:text="#{nav.logout}">退出</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
     <div class="container mx-auto px-6 py-12 max-w-5xl">
-        <!-- Back Header -->
+        <!-- Back Header (Simplified) -->
         <div class="flex justify-between items-center mb-8">
             <a href="/"
                 class="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-600 hover:text-blue-600 transition-all group">
@@ -41,17 +85,6 @@
                 </svg>
                 <span class="font-semibold text-sm" th:text="#{btn.back}">Back to Dashboard</span>
             </a>
-            <div class="flex gap-2 items-center">
-                <a href="?lang=zh" class="text-xs font-bold text-slate-400 hover:text-slate-600">中</a>
-                <span class="text-slate-200">|</span>
-                <a href="?lang=en" class="text-xs font-bold text-slate-400 hover:text-slate-600">EN</a>
-                <span class="text-slate-200">|</span>
-                <!-- Logout Button -->
-                <form th:action="@{/logout}" method="post" class="inline">
-                    <button type="submit" class="text-xs font-bold text-slate-400 hover:text-rose-600 transition-colors"
-                        th:text="#{nav.logout}">退出</button>
-                </form>
-            </div>
         </div>
 
         <!-- Main Detail Card -->

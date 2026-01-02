@@ -32,22 +32,25 @@
                 <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600"
                     th:text="#{app.title}">Webhook Gateway</h1>
                 <div class="hidden md:flex gap-1">
-                    <a href="/"
-                        class="px-4 py-2 rounded-md font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                    <a href="/" class="px-4 py-2 rounded-md font-medium transition-colors"
+                        th:classappend="${currentUri == '/' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}"
                         th:text="#{nav.dashboard}">Dashboard</a>
-                    <a href="/subscriptions"
-                        class="px-4 py-2 rounded-md font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                    <a href="/subscriptions" class="px-4 py-2 rounded-md font-medium transition-colors"
+                        th:classappend="${currentUri == '/subscriptions' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}"
                         th:text="#{nav.subscriptions}">Subscriptions</a>
-                    <a href="/settings"
-                        class="px-4 py-2 rounded-md font-medium bg-blue-50 text-blue-600 transition-colors"
+                    <a href="/settings" class="px-4 py-2 rounded-md font-medium transition-colors"
+                        th:classappend="${currentUri == '/settings' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}"
                         th:text="#{nav.settings}">Settings</a>
+                    <a href="/monitoring" class="px-4 py-2 rounded-md font-medium transition-colors"
+                        th:classappend="${currentUri == '/monitoring' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}"
+                        th:text="#{nav.monitoring}">Monitoring</a>
                 </div>
             </div>
             <div class="flex items-center gap-6">
                 <div class="flex items-center bg-slate-100 rounded-lg p-1 text-xs font-semibold">
-                    <a th:href="@{/settings(lang='zh')}" class="px-3 py-1.5 rounded-md transition-all"
+                    <a th:href="@{${currentUri}(lang='zh')}" class="px-3 py-1.5 rounded-md transition-all"
                         th:classappend="${#locale.language == 'zh' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}">中文</a>
-                    <a th:href="@{/settings(lang='en')}" class="px-3 py-1.5 rounded-md transition-all"
+                    <a th:href="@{${currentUri}(lang='en')}" class="px-3 py-1.5 rounded-md transition-all"
                         th:classappend="${#locale.language == 'en' ? 'bg-white shadow text-slate-900' : 'text-slate-400 hover:text-slate-600'}">EN</a>
                 </div>
                 <!-- Logout Button -->
