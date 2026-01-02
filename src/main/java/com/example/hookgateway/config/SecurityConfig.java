@@ -41,7 +41,7 @@ public class SecurityConfig {
                                                 // 开放 Webhook 摄入端点和 Tunnel WebSocket 端点
                                                 .requestMatchers("/hooks/**", "/tunnel/**").permitAll()
                                                 // 开放静态资源和登录页
-                                                .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**", "/error")
+                                                .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**", "/favicon.ico", "/error")
                                                 .permitAll()
                                                 // Actuator 端点需要认证（生产环境安全）
                                                 .requestMatchers("/actuator/**").hasRole("ADMIN")
