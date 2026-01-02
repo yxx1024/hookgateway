@@ -636,51 +636,51 @@
         }
     </style>
     <!-- Toast handled by HookUI -->
+    <script>
+        // --- Tunnel Toggle Logic ---
+        function toggleDestinationType() {
+            const type = document.querySelector('input[name="destinationType"]:checked').value;
+            const targetUrlGroup = document.getElementById('targetUrlGroup');
+            const targetUrlInput = document.getElementById('targetUrlInput');
+            const tunnelGroup = document.getElementById('tunnelGroup');
+            const tunnelKeyInput = document.getElementById('tunnelKeyInput');
 
-    // --- Tunnel Toggle Logic ---
-    function toggleDestinationType() {
-    const type = document.querySelector('input[name="destinationType"]:checked').value;
-    const targetUrlGroup = document.getElementById('targetUrlGroup');
-    const targetUrlInput = document.getElementById('targetUrlInput');
-    const tunnelGroup = document.getElementById('tunnelGroup');
-    const tunnelKeyInput = document.getElementById('tunnelKeyInput');
+            if (type === 'TUNNEL') {
+                targetUrlGroup.classList.add('hidden');
+                tunnelGroup.classList.remove('hidden');
+                targetUrlInput.removeAttribute('required');
 
-    if (type === 'TUNNEL') {
-    targetUrlGroup.classList.add('hidden');
-    tunnelGroup.classList.remove('hidden');
-    targetUrlInput.removeAttribute('required');
+                // Auto generate key if empty
+                if (!tunnelKeyInput.value || tunnelKeyInput.value === '[Generated on Save]') {
+                    generateTunnelKey();
+                }
+            } else {
+                targetUrlGroup.classList.remove('hidden');
+                tunnelGroup.classList.add('hidden');
+                targetUrlInput.setAttribute('required', '');
+            }
+        }
 
-    // Auto generate key if empty
-    if (!tunnelKeyInput.value || tunnelKeyInput.value === '[Generated on Save]') {
-    generateTunnelKey();
-    }
-    } else {
-    targetUrlGroup.classList.remove('hidden');
-    tunnelGroup.classList.add('hidden');
-    targetUrlInput.setAttribute('required', '');
-    }
-    }
+        function generateTunnelKey() {
+            // Check crypto API availability
+            let uuid = '';
+            if (crypto && crypto.randomUUID) {
+                uuid = crypto.randomUUID();
+            } else {
+                // Fallback
+                uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+            document.getElementById('tunnelKeyInput').value = uuid;
+            updateUsageCmd(uuid);
+        }
 
-    function generateTunnelKey() {
-    // Check crypto API availability
-    let uuid = '';
-    if (crypto && crypto.randomUUID) {
-    uuid = crypto.randomUUID();
-    } else {
-    // Fallback
-    uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-    });
-    }
-    document.getElementById('tunnelKeyInput').value = uuid;
-    updateUsageCmd(uuid);
-    }
-
-    function updateUsageCmd(key) {
-    const el = document.getElementById('usageCmdKey');
-    if (el) el.innerText = key;
-    }
+        function updateUsageCmd(key) {
+            const el = document.getElementById('usageCmdKey');
+            if (el) el.innerText = key;
+        }
     </script>
 </body>
 

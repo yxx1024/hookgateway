@@ -228,13 +228,13 @@
                 });
 
                 if (response.ok) {
-                    showStatus('success', '✓ Settings saved successfully!');
+                    HookUI.toast('✓ Settings saved successfully!');
                     loadConfig();
                 } else {
-                    showStatus('error', '✗ Failed to save settings');
+                    HookUI.toast('✗ Failed to save settings', 'error');
                 }
             } catch (error) {
-                showStatus('error', '✗ Error: ' + error.message);
+                HookUI.toast('✗ Error: ' + error.message, 'error');
             }
         });
 
@@ -245,9 +245,7 @@
             btn.disabled = true;
             btn.textContent = messages.running || 'Processing...';
 
-            // Show running status immediately (no auto-hide)
-            const runningMsg = messages.running || 'Cleaning in progress...';
-            showStatus('info', runningMsg, false);
+            HookUI.toast(messages.running || 'Cleaning in progress...');
 
             try {
                 const response = await fetch('/api/cleanup/run', {
@@ -266,14 +264,14 @@
                     } else {
                         msg = messages.resultDeleted.replace('{0}', count);
                     }
-                    showStatus('success', msg);
+                    HookUI.toast(msg);
                 } else {
-                    showStatus('info', result.message);
+                    HookUI.toast(result.message, 'info');
                 }
 
                 loadConfig();
             } catch (error) {
-                showStatus('error', '✗ Error: ' + error.message);
+                HookUI.toast('✗ Error: ' + error.message, 'error');
             } finally {
                 btn.disabled = false;
                 btn.textContent = originalText;
