@@ -35,11 +35,14 @@ public class SubscriptionController {
         String finalTunnelKey = tunnelKey;
         String finalTargetUrl = targetUrl;
 
-        // V11: Tunnel Support
         if ("TUNNEL".equalsIgnoreCase(destinationType)) {
             // Use frontend key if available, otherwise generate
             if (finalTunnelKey == null || finalTunnelKey.isEmpty()) {
-                finalTunnelKey = java.util.UUID.randomUUID().toString();
+                // Fix: Use SecureRandom instead of UUID for better entropy
+                java.security.SecureRandom random = new java.security.SecureRandom();
+                byte[] bytes = new byte[24]; // 24 bytes -> 32 chars in Base64
+                random.nextBytes(bytes);
+                finalTunnelKey = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
             }
             finalTargetUrl = "tunnel://" + finalTunnelKey; // Placeholder for DB constraint
         } else {

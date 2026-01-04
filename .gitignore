@@ -35,5 +35,5 @@ data/
 # Temporary
 tmp/
 temp/
-start.sh
+
 start.bat

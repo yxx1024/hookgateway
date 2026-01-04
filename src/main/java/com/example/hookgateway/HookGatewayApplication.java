@@ -13,6 +13,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class HookGatewayApplication {
 
     public static void main(String[] args) {
+        // Fix: SSRF DNS Rebinding Mitigation
+        // Force JVM to cache DNS lookups for 60 seconds
+        java.security.Security.setProperty("networkaddress.cache.ttl", "60");
         SpringApplication.run(HookGatewayApplication.class, args);
     }
 
