@@ -22,7 +22,8 @@ public class TunnelAgentMain {
     private static final Gson gson = new Gson();
 
     public static void main(String[] args) {
-        String server = getArg(args, "--server", "ws://localhost:8080/tunnel/connect");
+        // Fix: Default to Secure WebSocket (wss://)
+        String server = getArg(args, "--server", "wss://localhost:8080/tunnel/connect");
         String tunnelKey = getArg(args, "--key", null);
         String targetUrl = getArg(args, "--target", "http://localhost:8080/webhook");
 
@@ -92,7 +93,7 @@ public class TunnelAgentMain {
 
                     // 转发到本地服务并返回结果描述
                     String result = forwardToLocal(method, headers, payload);
-                    
+
                     // 发送 ACK 回网关
                     sendAck(eventId, result);
                 }
@@ -123,20 +124,34 @@ public class TunnelAgentMain {
         private String forwardToLocal(String method, String headersStr, String payload) {
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
                 org.apache.hc.core5.http.ClassicHttpRequest request;
-                
+
                 // 根据原始方法创建请求
                 switch (method.toUpperCase()) {
-                    case "GET": request = new org.apache.hc.client5.http.classic.methods.HttpGet(targetUrl); break;
-                    case "PUT": request = new org.apache.hc.client5.http.classic.methods.HttpPut(targetUrl); break;
-                    case "DELETE": request = new org.apache.hc.client5.http.classic.methods.HttpDelete(targetUrl); break;
-                    case "PATCH": request = new org.apache.hc.client5.http.classic.methods.HttpPatch(targetUrl); break;
-                    case "HEAD": request = new org.apache.hc.client5.http.classic.methods.HttpHead(targetUrl); break;
-                    default: request = new HttpPost(targetUrl); break;
+                    case "GET":
+                        request = new org.apache.hc.client5.http.classic.methods.HttpGet(targetUrl);
+                        break;
+                    case "PUT":
+                        request = new org.apache.hc.client5.http.classic.methods.HttpPut(targetUrl);
+                        break;
+                    case "DELETE":
+                        request = new org.apache.hc.client5.http.classic.methods.HttpDelete(targetUrl);
+                        break;
+                    case "PATCH":
+                        request = new org.apache.hc.client5.http.classic.methods.HttpPatch(targetUrl);
+                        break;
+                    case "HEAD":
+                        request = new org.apache.hc.client5.http.classic.methods.HttpHead(targetUrl);
+                        break;
+                    default:
+                        request = new HttpPost(targetUrl);
+                        break;
                 }
 
                 // 设置 Body (如果是支持 Body 的方法)
-                if (payload != null && !payload.isEmpty() && (request instanceof org.apache.hc.core5.http.HttpEntityContainer)) {
-                    ((org.apache.hc.core5.http.HttpEntityContainer) request).setEntity(new StringEntity(payload, org.apache.hc.core5.http.ContentType.APPLICATION_JSON));
+                if (payload != null && !payload.isEmpty()
+                        && (request instanceof org.apache.hc.core5.http.HttpEntityContainer)) {
+                    ((org.apache.hc.core5.http.HttpEntityContainer) request).setEntity(
+                            new StringEntity(payload, org.apache.hc.core5.http.ContentType.APPLICATION_JSON));
                 }
 
                 // 解析并设置 Headers
@@ -148,13 +163,13 @@ public class TunnelAgentMain {
                             String name = line.substring(0, colonIndex).trim();
                             String value = line.substring(colonIndex + 1).trim();
                             // 安全加固：更严谨的 Header 过滤名单
-                            boolean isRestricted = name.equalsIgnoreCase("Host") 
-                                || name.equalsIgnoreCase("Content-Length") 
-                                || name.equalsIgnoreCase("Connection") 
-                                || name.equalsIgnoreCase("Content-Type")
-                                || name.equalsIgnoreCase("Authorization") // 安全风险：不透传内网鉴权
-                                || name.equalsIgnoreCase("Proxy-Authorization")
-                                || name.equalsIgnoreCase("Set-Cookie");
+                            boolean isRestricted = name.equalsIgnoreCase("Host")
+                                    || name.equalsIgnoreCase("Content-Length")
+                                    || name.equalsIgnoreCase("Connection")
+                                    || name.equalsIgnoreCase("Content-Type")
+                                    || name.equalsIgnoreCase("Authorization") // 安全风险：不透传内网鉴权
+                                    || name.equalsIgnoreCase("Proxy-Authorization")
+                                    || name.equalsIgnoreCase("Set-Cookie");
 
                             if (!isRestricted) {
                                 request.addHeader(name, value);
