@@ -10,7 +10,6 @@ CLAUDE.md：未找到
 
 主要原因：
 - 公开的摄入接口接收不受限的请求体并持久化。
-- 订阅默认验签为 NONE，除非管理员配置，否则可被伪造。
 - Tunnel ACK 授权在映射缺失时存在放行缺口。
 
 ## 发现的问题
@@ -30,17 +29,6 @@ CLAUDE.md：未找到
 - 持久化前拒绝或截断超大 payload。  
 - 修正配置注释，避免误导。  
 
-### 高-2：默认不验签，摄入端点可被伪造
-影响：  
-若管理员未开启验签，任何人都能伪造指定 source 的 webhook 并被转发，污染下游系统。
-
-证据：  
-- `src/main/java/com/example/hookgateway/controller/IngestController.java:48`  
-- `src/main/java/com/example/hookgateway/model/Subscription.java:40`（默认 `verifyMethod = NONE`）  
-
-建议：  
-- 新建订阅默认要求验签，或强制配置 source 的来源 IP 白名单。  
-- 若开放入口为设计目标，需明确威胁模型并提供限速/WAF/签名指引。  
 
 ### 中-1：Tunnel ACK 授权在映射缺失时放行
 影响：  
