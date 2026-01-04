@@ -80,9 +80,9 @@ CREATE TABLE `gateway_users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- ----------------------------
--- 默认管理员账户 (密码: admin123, BCrypt加密)
+-- 默认管理员账户: 已移除默认插入，请通过 DataInitializer 或手动插入，并强制修改密码
 -- ----------------------------
-INSERT INTO `gateway_users` (`username`, `password`, `enabled`, `password_changed`) 
-VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqXrM3nKWLHGM3GqCXKzQjQMQQqye', b'1', b'0');
+-- INSERT INTO `gateway_users` (`username`, `password`, `enabled`, `password_changed`) 
+-- VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqXrM3nKWLHGM3GqCXKzQjQMQQqye', b'1', b'0');
 
 SET FOREIGN_KEY_CHECKS = 1;

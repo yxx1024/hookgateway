@@ -39,6 +39,19 @@ public class UrlValidator {
                 return false;
             }
 
+            // V13: Protocol Allowlist
+            String scheme = uri.getScheme();
+            if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+                log.warn("[SSRF] Blocked protocol: {}", scheme);
+                return false;
+            }
+
+            // V13: Explicit Block for Wildcard/Zero Address
+            if (host.equals("0.0.0.0") || host.equals("::") || host.equals("[::]")) {
+                log.warn("[SSRF] Blocked wildcard address: {}", host);
+                return false;
+            }
+
             // 1. 检查 host 是否在逻辑黑名单（如 localhost）
             if (blockedIps.contains(host.toLowerCase())) {
                 log.warn("[SSRF] Blocked host: {}", host);

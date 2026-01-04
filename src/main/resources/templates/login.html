@@ -83,6 +83,7 @@
 
         <!-- Login Form -->
         <form th:action="@{/login}" method="post" class="space-y-5">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
             <div>
                 <label for="username" class="block text-sm font-semibold text-slate-700 mb-2"
                     th:text="#{login.username}">用户名</label>

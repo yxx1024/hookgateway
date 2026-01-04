@@ -51,6 +51,26 @@ public class WechatPayVerifier implements VerifierStrategy {
             return false;
         }
 
+        // Fix: Replay Attack Protection
+        try {
+            long eventTime = Long.parseLong(timestamp);
+            long currentTime = System.currentTimeMillis() / 1000;
+            // 5 minutes window (300 seconds)
+            if (Math.abs(currentTime - eventTime) > 300) {
+                log.warn("WeChat verification failed: Timestamp {} is outside of 5min window (current: {})", timestamp,
+                        currentTime);
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            log.warn("WeChat verification failed: Invalid timestamp format: {}", timestamp);
+            return false;
+        }
+
+        if (isNonceReplayed(nonce)) {
+            log.warn("WeChat verification failed: Nonce {} detected as replay", nonce);
+            return false;
+        }
+
         try {
             // 2. Construct Signature String
             // Format: Timestamp + "\n" + Nonce + "\n" + Body + "\n"
@@ -118,6 +138,22 @@ public class WechatPayVerifier implements VerifierStrategy {
             // If serial provided, we can't check it match, just use the key.
             return verifySecret;
         }
+    }
+
+    // Simple LRU Cache for Nonce to prevent replay (Size 10000)
+    private static final java.util.Set<String> PROCESSED_NONCES = java.util.Collections.synchronizedSet(
+            java.util.Collections.newSetFromMap(new java.util.LinkedHashMap<String, Boolean>() {
+                protected boolean removeEldestEntry(java.util.Map.Entry<String, Boolean> eldest) {
+                    return size() > 10000;
+                }
+            }));
+
+    private boolean isNonceReplayed(String nonce) {
+        if (PROCESSED_NONCES.contains(nonce)) {
+            return true;
+        }
+        PROCESSED_NONCES.add(nonce);
+        return false;
     }
 
     // Helper to extract header from the raw headers string (Key: Value\nKey: Value)

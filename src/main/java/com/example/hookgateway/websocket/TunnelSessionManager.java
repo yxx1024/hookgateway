@@ -26,12 +26,20 @@ public class TunnelSessionManager {
 
     private final ObjectMapper objectMapper;
     private static final String EVENT_TUNNEL_PREFIX = "webhook:event:tunnel:";
-    
+
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private StringRedisTemplate redisTemplate;
 
     // Key: tunnelKey, Value: WebSocketSession
     private final Map<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
+
+    // V14: Local fallback cache for BOLA protection (Size restricted)
+    private final Map<Long, String> localEventTunnelMap = java.util.Collections
+            .synchronizedMap(new java.util.LinkedHashMap<Long, String>() {
+                protected boolean removeEldestEntry(Map.Entry<Long, String> eldest) {
+                    return size() > 5000;
+                }
+            });
 
     /**
      * 将 Webhook 事件路由到正确的 Tunnel 客户端
@@ -42,7 +50,7 @@ public class TunnelSessionManager {
         registerEventTunnelMapping(event.getId(), tunnelKey);
 
         WebSocketSession session = getSession(tunnelKey);
-        
+
         if (session != null && session.isOpen()) {
             return deliverToLocal(event, tunnelKey, session);
         }
@@ -144,8 +152,9 @@ public class TunnelSessionManager {
      * 移除指定的 Tunnel 连接，增加 session 校验防止竞态
      */
     public void removeSession(String tunnelKey, WebSocketSession session) {
-        if (tunnelKey == null || session == null) return;
-        
+        if (tunnelKey == null || session == null)
+            return;
+
         // 只有当 Map 中的 session 是当前要移除的那个 session 时才移除
         // 防止：新连接 A 覆盖了旧连接 B 后，B 的 onClose 触发误删了 A
         boolean removed = activeSessions.remove(tunnelKey, session);
@@ -186,22 +195,44 @@ public class TunnelSessionManager {
     }
 
     /**
-     * V13: 将 Event ID 与允许处理该事件的 Tunnel Key 绑定到 Redis
+     * V13: 将 Event ID 与允许处理该事件的 Tunnel Key 绑定到 Redis & Local Cache
      */
     public void registerEventTunnelMapping(Long eventId, String tunnelKey) {
-        if (redisTemplate != null && eventId != null && tunnelKey != null) {
+        if (eventId == null || tunnelKey == null)
+            return;
+
+        // Write to local cache first
+        localEventTunnelMap.put(eventId, tunnelKey);
+
+        if (redisTemplate != null) {
             String key = EVENT_TUNNEL_PREFIX + eventId;
-            redisTemplate.opsForValue().set(key, tunnelKey, java.time.Duration.ofHours(24));
+            try {
+                redisTemplate.opsForValue().set(key, tunnelKey, java.time.Duration.ofHours(24));
+            } catch (Exception e) {
+                log.warn("Failed to cache event map to Redis", e);
+            }
         }
     }
 
     /**
-     * V13: 从 Redis 获取该事件绑定的 Tunnel Key
+     * V13: 从 Redis 或 Local Cache 获取该事件绑定的 Tunnel Key
      */
     public String getTunnelKeyForEvent(Long eventId) {
-        if (redisTemplate != null && eventId != null) {
-            return redisTemplate.opsForValue().get(EVENT_TUNNEL_PREFIX + eventId);
+        if (eventId == null)
+            return null;
+
+        // Check local first (faster & fallback)
+        String key = localEventTunnelMap.get(eventId);
+        if (key != null)
+            return key;
+
+        if (redisTemplate != null) {
+            try {
+                return redisTemplate.opsForValue().get(EVENT_TUNNEL_PREFIX + eventId);
+            } catch (Exception e) {
+                log.warn("Failed to read event map from Redis", e);
+            }
         }
-        return null; // Fallback or if Redis is down, validation might be bypassed or fail based on policy
+        return null;
     }
 }

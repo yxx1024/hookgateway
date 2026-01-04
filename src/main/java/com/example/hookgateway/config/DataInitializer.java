@@ -24,17 +24,18 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (!userRepository.existsByUsername(DEFAULT_ADMIN_USERNAME)) {
-            // Fix: Read from env or generate random password
-            String initPassword = System.getenv("ADMIN_INIT_PASSWORD");
-            boolean randomGenerated = false;
+            // Fix: Strict requirement for ADMIN_PASSWORD
+            String initPassword = System.getenv("ADMIN_PASSWORD");
 
             if (initPassword == null || initPassword.isEmpty()) {
-                // Generate secure random password
-                java.security.SecureRandom random = new java.security.SecureRandom();
-                byte[] bytes = new byte[8];
-                random.nextBytes(bytes);
-                initPassword = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-                randomGenerated = true;
+                log.error("❌ 严重错误: 未设置 ADMIN_PASSWORD 环境变量。");
+                log.error("❌ 出于安全考虑，不再自动生成随机密码。请设置环境变量 ADMIN_PASSWORD 后重启应用。");
+                // Option: System.exit(1); but that might be too harsh for a library/framework
+                // usage,
+                // but for a standalone app it's appropriate.
+                // For now, we just don't create the user, which effectively locks the system
+                // (safe fail).
+                return;
             }
 
             User admin = new User(
@@ -42,12 +43,7 @@ public class DataInitializer implements CommandLineRunner {
                     passwordEncoder.encode(initPassword));
             userRepository.save(admin);
 
-            if (randomGenerated) {
-                log.info("✅ 已创建默认管理员账户: {} (密码随机生成)", DEFAULT_ADMIN_USERNAME);
-                log.info("🔑 请立即保存管理员密码: {}", initPassword);
-            } else {
-                log.info("✅ 已创建默认管理员账户: {} (使用环境变量提供的密码)", DEFAULT_ADMIN_USERNAME);
-            }
+            log.info("✅ 已创建默认管理员账户: {} (使用 ADMIN_PASSWORD 环境变量)", DEFAULT_ADMIN_USERNAME);
         } else {
             // Check if password has been changed
             userRepository.findByUsername(DEFAULT_ADMIN_USERNAME).ifPresent(user -> {

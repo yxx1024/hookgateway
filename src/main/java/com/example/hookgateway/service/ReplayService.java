@@ -110,6 +110,7 @@ public class ReplayService {
 
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(targetUrl))
+                    .timeout(Duration.ofSeconds(10)) // V12: Request timeout
                     .method(method, HttpRequest.BodyPublishers.ofString(payload == null ? "" : payload));
 
             // Simple header parsing
