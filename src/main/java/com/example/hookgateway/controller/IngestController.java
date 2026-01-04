@@ -205,34 +205,19 @@ public class IngestController {
                 }
             } else if ("REGEX".equals(sub.getFilterType()) && sub.getFilterRule() != null
                     && !sub.getFilterRule().isEmpty()) {
-                // Fix: ReDoS Protection (Limit length & Timeout)
-                if (sub.getFilterRule().length() > 50) {
-                    shouldSend = false;
-                    filterLog = "Skipped: Regex pattern too long (max 50 chars)";
-                } else {
-                    try {
-                        // Use CompletableFuture to enforce timeout
-                        java.util.concurrent.CompletableFuture<Boolean> future = java.util.concurrent.CompletableFuture
-                                .supplyAsync(() -> {
-                                    return java.util.regex.Pattern.compile(sub.getFilterRule())
-                                            .matcher(event.getPayload()).find();
-                                });
+                try {
+                    // Fix: Use Google RE2J for linear time matching (ReDoS safe)
+                    // No need for complex timeout/future logic anymore
+                    com.google.re2j.Pattern pattern = com.google.re2j.Pattern.compile(sub.getFilterRule());
+                    boolean found = pattern.matcher(event.getPayload()).find();
 
-                        try {
-                            boolean found = future.get(100, java.util.concurrent.TimeUnit.MILLISECONDS);
-                            if (!found) {
-                                shouldSend = false;
-                                filterLog = "Skipped by Regex filter: No match for " + sub.getFilterRule();
-                            }
-                        } catch (java.util.concurrent.TimeoutException e) {
-                            future.cancel(true);
-                            shouldSend = false;
-                            filterLog = "Skipped by Regex filter: Execution timed out (ReDoS protection)";
-                        }
-                    } catch (Exception e) {
+                    if (!found) {
                         shouldSend = false;
-                        filterLog = "Skipped by Regex filter: Error (" + e.getMessage() + ")";
+                        filterLog = "Skipped by Regex filter: No match for " + sub.getFilterRule();
                     }
+                } catch (Exception e) {
+                    shouldSend = false;
+                    filterLog = "Skipped by Regex filter: Error (" + e.getMessage() + ")";
                 }
             }
 
