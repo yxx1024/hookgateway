@@ -54,6 +54,13 @@
   - **脚本修复**: 优化 `start.sh`。
   - **演进规划**: 输出 `OPTIMIZATION_PLAN.md`。
 
+### 5. 系统安全加固 (Completed)
+- **密钥安全**: Tunnel Key 生成逻辑升级为 `SecureRandom`，杜绝伪随机预测风险。
+- **ReDoS 防护**: 正则过滤通过 `CompletableFuture` 实现了 **超时熔断 (100ms)** 与 **长度限制 (50 chars)**。
+- **配置安全**: 移除了代码中的默硬编码密码，统一由环境变量 `ADMIN_INIT_PASSWORD` 控制。
+- **SSRF 深度防御**: 强制 JVM DNS 缓存 TTL=60s，有效防御 DNS Rebinding 攻击。
+- **WebSocket 防护**: 收紧了 `allowed-origins` 策略，默认仅允许 Localhost 连接。
+
 ---
 
 ## 📂 关键敏感信息

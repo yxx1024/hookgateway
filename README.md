@@ -60,7 +60,9 @@ docker-compose --profile full up
 ### 方式二：本地运行
 
 ```bash
-# 使用启动脚本 (会自动释放端口)
+# 使用启动脚本 (推荐)
+# 1. 打开脚本配置数据库/Redis信息: vi start.sh
+# 2. 运行脚本 (会自动编译并启动)
 ./start.sh
 
 # 或手动运行
@@ -87,11 +89,15 @@ java -jar target/hookgateway-0.0.1-SNAPSHOT.jar
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `DB_URL` | `jdbc:h2:mem:webhookdb` | 数据库连接 |
+| `DB_URL` | `jdbc:h2...` | 数据库连接 (推荐在 start.sh 中配置) |
 | `DB_USERNAME` | `sa` | 数据库用户名 |
 | `DB_PASSWORD` | (空) | 数据库密码 |
+| `DB_DRIVER` | `org.h2.Driver` | 数据库驱动 (MySQL需设为 `com.mysql.cj.jdbc.Driver`) |
 | `REDIS_HOST` | `localhost` | Redis 地址 |
 | `DISTRIBUTION_MODE` | `async` | 分发模式 (`async`/`redis`) |
+| `INGEST_MODE` | `sync` | 摄入模式 (`sync`/`redis`) |
+| `ADMIN_INIT_PASSWORD` | (随机) | 初始管理员密码 (仅首次有效) |
+| `WS_ALLOWED_ORIGINS` | `localhost...` | WebSocket 允许来源 (逗号分隔) |
 
 ## 📂 路径说明
 
