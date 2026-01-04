@@ -41,7 +41,8 @@ public class SecurityConfig {
                                                 // 开放 Webhook 摄入端点和 Tunnel WebSocket 端点
                                                 .requestMatchers("/hooks/**", "/tunnel/**").permitAll()
                                                 // 开放静态资源和登录页
-                                                .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**", "/favicon.ico", "/error")
+                                                .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**",
+                                                                "/favicon.ico", "/error")
                                                 .permitAll()
                                                 // Actuator 端点需要认证（生产环境安全）
                                                 .requestMatchers("/actuator/**").hasRole("ADMIN")
@@ -51,7 +52,30 @@ public class SecurityConfig {
                                                 .loginPage("/login")
                                                 .loginProcessingUrl("/login")
                                                 .defaultSuccessUrl("/", true)
-                                                .failureUrl("/login?error=true")
+                                                .failureHandler((request, response, exception) -> {
+                                                        String error = "true";
+                                                        // Check for LockedException (wrapped in
+                                                        // InternalAuthenticationServiceException or direct)
+                                                        org.slf4j.LoggerFactory.getLogger(SecurityConfig.class).info(
+                                                                        "[LoginFailure] Exception type: {}, Cause: {}",
+                                                                        exception.getClass().getName(),
+                                                                        exception.getCause() != null ? exception
+                                                                                        .getCause().getClass().getName()
+                                                                                        : "null");
+
+                                                        if (exception instanceof org.springframework.security.authentication.LockedException) {
+                                                                error = "locked";
+                                                        } else if (exception instanceof org.springframework.security.authentication.InternalAuthenticationServiceException) {
+                                                                Throwable cause = exception.getCause();
+                                                                if (cause instanceof org.springframework.security.authentication.LockedException) {
+                                                                        error = "locked";
+                                                                }
+                                                        }
+                                                        org.slf4j.LoggerFactory.getLogger(SecurityConfig.class).info(
+                                                                        "[LoginFailure] Redirecting to /login?error={}",
+                                                                        error);
+                                                        response.sendRedirect("/login?error=" + error);
+                                                })
                                                 .permitAll())
                                 .logout(logout -> logout
                                                 .logoutUrl("/logout")

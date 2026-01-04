@@ -92,6 +92,8 @@ public class RequestSizeLimitFilter implements Filter {
 
     private static class SizeLimitServletRequestWrapper extends HttpServletRequestWrapper {
         private final long maxBytes;
+        private ServletInputStream inputStream;
+        private java.io.BufferedReader reader;
 
         public SizeLimitServletRequestWrapper(HttpServletRequest request, long maxBytes) {
             super(request);
@@ -100,7 +102,23 @@ public class RequestSizeLimitFilter implements Filter {
 
         @Override
         public ServletInputStream getInputStream() throws IOException {
-            return new SizeLimitInputStream(super.getInputStream(), maxBytes);
+            if (inputStream == null) {
+                inputStream = new SizeLimitInputStream(super.getInputStream(), maxBytes);
+            }
+            return inputStream;
+        }
+
+        @Override
+        public java.io.BufferedReader getReader() throws IOException {
+            if (reader == null) {
+                String encoding = getCharacterEncoding();
+                if (encoding == null) {
+                    encoding = "UTF-8";
+                }
+                // Use our wrapped InputStream to ensure limit is enforced
+                reader = new java.io.BufferedReader(new java.io.InputStreamReader(getInputStream(), encoding));
+            }
+            return reader;
         }
     }
 
