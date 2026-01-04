@@ -19,9 +19,18 @@ import java.util.Collections;
 public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final com.example.hookgateway.security.LoginAttemptService loginAttemptService;
+    private final jakarta.servlet.http.HttpServletRequest request;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // V17: Brute Force Protection
+        String ip = getClientIP();
+        if (loginAttemptService.isBlocked(ip)) {
+            throw new org.springframework.security.authentication.LockedException(
+                    "IP blocked due to too many failed login attempts");
+        }
+
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
@@ -31,7 +40,19 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 user.isEnabled(),
                 true, // accountNonExpired
                 true, // credentialsNonExpired
-                true, // accountNonLocked
+                true, // accountNonLocked (Actually we manage IP lock ourselves, but we could set this
+                      // false too if we want to show generic message)
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN")));
+    }
+
+    private String getClientIP() {
+        // In some scopes request might enable to be injected directly or via
+        // RequestContextHolder
+        // Spring handles the proxying for request scope bean injection into singleton
+        String xfHeader = request.getHeader("X-Forwarded-For");
+        if (xfHeader == null) {
+            return request.getRemoteAddr();
+        }
+        return xfHeader.split(",")[0];
     }
 }

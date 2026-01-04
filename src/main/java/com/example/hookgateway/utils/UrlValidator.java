@@ -1,5 +1,7 @@
 package com.example.hookgateway.utils;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -13,6 +15,7 @@ import java.util.stream.Collectors;
 /**
  * SSRF 校验工具类
  * 防止 Webhook 转发请求到内网受保护的 IP 地址
+ * V2: 支持 DNS Pinning (解析后固定 IP)，防止 DNS Rebinding 攻击
  */
 @Component
 @Slf4j
@@ -28,48 +31,103 @@ public class UrlValidator {
     }
 
     /**
-     * 验证 URL 是否安全（非内网 IP）
+     * 验证并返回安全的请求目标（含已解析的 IP）
+     * 
+     * @throws IllegalArgumentException 如果 URL 不安全
      */
-    public boolean isSafeUrl(String url) {
+    public ValidatedTarget validate(String url) {
         try {
             URI uri = URI.create(url).normalize();
             String host = uri.getHost();
 
             if (host == null || host.isEmpty()) {
-                return false;
+                throw new IllegalArgumentException("Host cannot be empty");
             }
 
             // V13: Protocol Allowlist
             String scheme = uri.getScheme();
             if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
-                log.warn("[SSRF] Blocked protocol: {}", scheme);
-                return false;
+                throw new IllegalArgumentException("Blocked protocol: " + scheme);
             }
 
             // V13: Explicit Block for Wildcard/Zero Address
             if (host.equals("0.0.0.0") || host.equals("::") || host.equals("[::]")) {
-                log.warn("[SSRF] Blocked wildcard address: {}", host);
-                return false;
+                throw new IllegalArgumentException("Blocked wildcard address: " + host);
             }
 
-            // 1. 检查 host 是否在逻辑黑名单（如 localhost）
+            // 1. 检查 host 是否在逻辑黑名单
             if (blockedIps.contains(host.toLowerCase())) {
-                log.warn("[SSRF] Blocked host: {}", host);
-                return false;
+                throw new IllegalArgumentException("Blocked host: " + host);
             }
 
-            // 2. 解析 IP 地址并检查
+            // 2. 解析 IP 地址并检查 (DNS Pinning 核心)
+            // 获取所有 IP，只要有一个是黑名单 IP，就应当警惕。
+            // 严格模式：我们只使用第一个安全的 IP 进行连接。
             InetAddress[] addresses = InetAddress.getAllByName(host);
+            InetAddress safeAddress = null;
+
             for (InetAddress addr : addresses) {
                 if (isBlockedAddress(addr)) {
-                    log.warn("[SSRF] Blocked IP: {} for host: {}", addr.getHostAddress(), host);
-                    return false;
+                    log.warn("[SSRF] Found blocked IP: {} for host: {}", addr.getHostAddress(), host);
+                    // Fail secure: if any IP is bad, reject the whole host?
+                    // Usually yes, to prevent round-robin DNS attacks.
+                    throw new IllegalArgumentException("Blocked IP detected: " + addr.getHostAddress());
+                }
+                if (safeAddress == null) {
+                    safeAddress = addr;
                 }
             }
 
+            if (safeAddress == null) {
+                throw new IllegalArgumentException("Could not resolve safe IP for host: " + host);
+            }
+
+            // 构造 Safe Target
+            // 如果是 HTTPS，我们不得不使用原域名以通过 SSL 校验 (依赖 JVM DNS Cache TTL=60s 防护 Rebinding)
+            // 如果是 HTTP，我们不仅可以使用原域名，更推荐直接使用 IP + Host Header (完全杜绝 Rebinding)
+            // 这里我们为调用方提供两种模式的信息。
+
+            boolean useIpConnection = scheme.equalsIgnoreCase("http");
+            String finalUrl = url;
+
+            if (useIpConnection) {
+                // Reconstruct URL with IP
+                // e.g. http://1.2.3.4:8080/path?query
+                int port = uri.getPort();
+                String ip = safeAddress.getHostAddress();
+                // Handle IPv6 literal
+                if (ip.contains(":")) {
+                    ip = "[" + ip + "]";
+                }
+
+                StringBuilder sb = new StringBuilder();
+                sb.append(scheme).append("://").append(ip);
+                if (port != -1) {
+                    sb.append(":").append(port);
+                }
+                sb.append(uri.getRawPath());
+                if (uri.getRawQuery() != null) {
+                    sb.append("?").append(uri.getRawQuery());
+                }
+                finalUrl = sb.toString();
+            }
+
+            return new ValidatedTarget(finalUrl, host, useIpConnection);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("[SSRF] Validation failed for {}: {}", url, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("[SSRF] Unexpected error for {}: {}", url, e.getMessage());
+            throw new IllegalArgumentException("Validation error");
+        }
+    }
+
+    public boolean isSafeUrl(String url) {
+        try {
+            validate(url);
             return true;
         } catch (Exception e) {
-            log.error("[SSRF] Validation error for URL: {}", url, e);
             return false;
         }
     }
@@ -84,11 +142,7 @@ public class UrlValidator {
         byte[] bytes = addr.getAddress();
 
         // V14: IPv6 ULA (Unique Local Address) check: fc00::/7
-        // fc00:: to fdff::
         if (bytes.length == 16) {
-            // Check first byte. ULA starts with 1111 110x (fc or fd)
-            // 0xfc = 1111 1100, 0xfd = 1111 1101
-            // (byte & 0xFE) == 0xFC checks the top 7 bits are 1111 110
             if ((bytes[0] & 0xFE) == (byte) 0xFC) {
                 return true;
             }
@@ -136,5 +190,13 @@ public class UrlValidator {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    @Getter
+    @RequiredArgsConstructor
+    public static class ValidatedTarget {
+        private final String targetUrl; // 可以是 IP URL (HTTP) 或 原 URL (HTTPS)
+        private final String originalHost; // 用于 Host Header
+        private final boolean useIpConnection; // 是否使用了 IP 直连
     }
 }

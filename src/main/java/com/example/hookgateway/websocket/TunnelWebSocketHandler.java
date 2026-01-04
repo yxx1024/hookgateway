@@ -164,18 +164,8 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
             return headerKey;
         }
 
-        // 后备方案：从 Query 参数获取 (为了兼容旧版但记录警告)
-        String query = session.getUri().getQuery();
-        if (query != null && query.contains("key=")) {
-            log.warn(
-                    "[TunnelWebSocket] Client used insecure URL param for tunnelKey. Use X-Tunnel-Key header instead.");
-            // 简单解析 key=xxx
-            for (String param : query.split("&")) {
-                if (param.startsWith("key=")) {
-                    return param.substring(4);
-                }
-            }
-        }
+        // V18: Enforce Header Auth only (Security Hardening)
+        // Query Params are no longer supported to prevent leak in logs.
         return null;
     }
 }

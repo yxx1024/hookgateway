@@ -95,9 +95,12 @@ public class ReplayService {
 
     public ReplayResult replay(String method, String headersRaw, String payload, String targetUrl) {
         try {
-            // V13: SSRF Protection
-            if (!urlValidator.isSafeUrl(targetUrl)) {
-                String errorMsg = "Blocked potential SSRF target: " + targetUrl;
+            // V13: SSRF Protection (Round 2: DNS Pinning)
+            com.example.hookgateway.utils.UrlValidator.ValidatedTarget validatedTarget;
+            try {
+                validatedTarget = urlValidator.validate(targetUrl);
+            } catch (Exception e) {
+                String errorMsg = "Blocked potential SSRF target: " + targetUrl + " Reason: " + e.getMessage();
                 appendLog(errorMsg);
                 return ReplayResult.builder()
                         .success(false)
@@ -109,9 +112,15 @@ public class ReplayService {
             }
 
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(targetUrl))
+                    .uri(URI.create(validatedTarget.getTargetUrl()))
                     .timeout(Duration.ofSeconds(10)) // V12: Request timeout
                     .method(method, HttpRequest.BodyPublishers.ofString(payload == null ? "" : payload));
+
+            // If we are connecting via IP (for HTTP), we MUST set the Host header
+            // so Virtual Hosts work correctly.
+            if (validatedTarget.isUseIpConnection()) {
+                requestBuilder.header("Host", validatedTarget.getOriginalHost());
+            }
 
             // Simple header parsing
             String[] lines = headersRaw.split("\n");
