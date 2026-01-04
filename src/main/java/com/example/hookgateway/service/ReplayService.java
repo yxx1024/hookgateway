@@ -2,7 +2,6 @@ package com.example.hookgateway.service;
 
 import lombok.Builder;
 import lombok.Data;
-import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -60,7 +59,7 @@ public class ReplayService {
     public ReplayResult replayWithRetry(String method, String headersRaw, String payload, String targetUrl) {
         int attempt = attemptCounter.get() + 1;
         attemptCounter.set(attempt);
-        
+
         appendLog("--- Attempt #" + attempt + " ---");
         ReplayResult result = replay(method, headersRaw, payload, targetUrl);
 

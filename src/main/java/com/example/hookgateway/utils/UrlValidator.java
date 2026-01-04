@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
 import java.net.URI;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,7 +20,8 @@ public class UrlValidator {
 
     private final List<String> blockedIps;
 
-    public UrlValidator(@Value("${app.security.ssrf.blocked-ips:127.0.0.1,localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.169.254}") String blockedIpsConfig) {
+    public UrlValidator(
+            @Value("${app.security.ssrf.blocked-ips:127.0.0.1,localhost,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.169.254}") String blockedIpsConfig) {
         this.blockedIps = Arrays.stream(blockedIpsConfig.split(","))
                 .map(String::trim)
                 .collect(Collectors.toList());
@@ -71,7 +71,8 @@ public class UrlValidator {
         String ip = addr.getHostAddress();
         for (String blocked : blockedIps) {
             if (blocked.contains("/")) {
-                if (isInSubnet(ip, blocked)) return true;
+                if (isInSubnet(ip, blocked))
+                    return true;
             } else if (ip.equals(blocked)) {
                 return true;
             }
@@ -94,7 +95,8 @@ public class UrlValidator {
 
             int fullBytes = bits / 8;
             for (int i = 0; i < fullBytes; i++) {
-                if (ipBytes[i] != subnetBytes[i]) return false;
+                if (ipBytes[i] != subnetBytes[i])
+                    return false;
             }
 
             int remainingBits = bits % 8;

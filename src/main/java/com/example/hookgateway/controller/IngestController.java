@@ -11,14 +11,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/hooks")
@@ -34,8 +31,6 @@ public class IngestController {
     // V11: Tunnel support
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.example.hookgateway.websocket.TunnelSessionManager tunnelSessionManager;
-
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
     // Redis support - optional
     @org.springframework.beans.factory.annotation.Autowired(required = false)
