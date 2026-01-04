@@ -76,8 +76,22 @@ public class UrlValidator {
 
     private boolean isBlockedAddress(InetAddress addr) {
         // 检查是否为回环或私有地址
-        if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() || addr.isLinkLocalAddress()) {
+        if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() || addr.isLinkLocalAddress()
+                || addr.isMulticastAddress()) {
             return true;
+        }
+
+        byte[] bytes = addr.getAddress();
+
+        // V14: IPv6 ULA (Unique Local Address) check: fc00::/7
+        // fc00:: to fdff::
+        if (bytes.length == 16) {
+            // Check first byte. ULA starts with 1111 110x (fc or fd)
+            // 0xfc = 1111 1100, 0xfd = 1111 1101
+            // (byte & 0xFE) == 0xFC checks the top 7 bits are 1111 110
+            if ((bytes[0] & 0xFE) == (byte) 0xFC) {
+                return true;
+            }
         }
 
         // 检查是否在显式指定的黑名单 CIDR/IP 中

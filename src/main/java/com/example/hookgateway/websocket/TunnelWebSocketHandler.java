@@ -48,7 +48,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
 
         // 注册会话
         sessionManager.registerSession(tunnelKey, session);
-        log.info("[TunnelWebSocket] Connection established for tunnelKey: {} (Session ID: {})", 
+        log.info("[TunnelWebSocket] Connection established for tunnelKey: {} (Session ID: {})",
                 tunnelKey, session.getId());
 
         // 发送欢迎消息
@@ -64,36 +64,43 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String tunnelKey = extractTunnelKey(session);
         String payload = message.getPayload();
-        
+
         // 安全加固：下行数据长度逻辑校验 (防止恶意大文本注入)
-        if (payload != null && payload.length() > 1024 * 16) { 
-            log.warn("[TunnelWebSocket] Rejected oversized message from tunnel {}: {} bytes", tunnelKey, payload.length());
+        if (payload != null && payload.length() > 1024 * 16) {
+            log.warn("[TunnelWebSocket] Rejected oversized message from tunnel {}: {} bytes", tunnelKey,
+                    payload.length());
             return;
         }
 
         log.debug("[TunnelWebSocket] Received message from {}: {}", tunnelKey, payload);
 
         try {
-            Map<String, Object> msg = objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> msg = objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {
+            });
             String type = (String) msg.get("type");
 
             if ("ACK".equals(type)) {
-                if (msg.get("eventId") == null) return;
-                
+                if (msg.get("eventId") == null)
+                    return;
+
                 Long eventId = ((Number) msg.get("eventId")).longValue();
                 String status = (String) msg.get("status");
                 String detail = (String) msg.get("detail");
 
                 // 安全加固 (BOLA): 验证该事件是否确实路由给了该隧道
                 String expectedTunnelKey = sessionManager.getTunnelKeyForEvent(eventId);
-                if (expectedTunnelKey != null && !expectedTunnelKey.equals(tunnelKey)) {
-                    log.warn("[TunnelWebSocket] BOLA ATTEMPT DETECTED! Tunnel {} tried to ACK event {} which belongs to tunnel {}", 
-                             tunnelKey, eventId, expectedTunnelKey);
+
+                // Fix: Fail Closed if mapping is missing (null) or mismatch
+                if (expectedTunnelKey == null || !expectedTunnelKey.equals(tunnelKey)) {
+                    log.warn(
+                            "[TunnelWebSocket] BOLA ATTEMPT OR MAPPING EXPIRED! Tunnel {} tried to ACK event {} which belongs to tunnel {} (or null)",
+                            tunnelKey, eventId, expectedTunnelKey);
                     return;
                 }
 
                 // 安全加固：Status 字段校验 (允许系统定义的标准状态)
-                java.util.List<String> allowedStatuses = java.util.Arrays.asList("SUCCESS", "FAILED", "PARTIAL_SUCCESS", "RECEIVED");
+                java.util.List<String> allowedStatuses = java.util.Arrays.asList("SUCCESS", "FAILED", "PARTIAL_SUCCESS",
+                        "RECEIVED");
                 if (!allowedStatuses.contains(status)) {
                     log.warn("[TunnelWebSocket] Invalid ACK status from tunnel {}: {}", tunnelKey, status);
                     return;
@@ -112,7 +119,8 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
                     // 拼接报告，带有长度保护
                     String reportHeader = "\n--- Tunnel Client ACK ---\n";
                     String oldDetails = event.getDeliveryDetails() != null ? event.getDeliveryDetails() : "";
-                    event.setDeliveryDetails(oldDetails + reportHeader + (finalDetail != null ? finalDetail : "No details"));
+                    event.setDeliveryDetails(
+                            oldDetails + reportHeader + (finalDetail != null ? finalDetail : "No details"));
                     eventRepository.save(event);
                 });
             }
@@ -159,7 +167,8 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
         // 后备方案：从 Query 参数获取 (为了兼容旧版但记录警告)
         String query = session.getUri().getQuery();
         if (query != null && query.contains("key=")) {
-            log.warn("[TunnelWebSocket] Client used insecure URL param for tunnelKey. Use X-Tunnel-Key header instead.");
+            log.warn(
+                    "[TunnelWebSocket] Client used insecure URL param for tunnelKey. Use X-Tunnel-Key header instead.");
             // 简单解析 key=xxx
             for (String param : query.split("&")) {
                 if (param.startsWith("key=")) {
