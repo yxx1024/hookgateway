@@ -14,10 +14,10 @@ echo -e "${GREEN}=== HookGateway Startup Script ===${NC}"
 
 # 1. Database Configuration (MySQL)
 # Uncomment and fill in to enable persistent MySQL storage
-export DB_URL="jdbc:mysql://rm-bp1048net06j9495z5o.mysql.rds.aliyuncs.com:3306/webhook?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
-export DB_USERNAME="yxx"
-export DB_PASSWORD="Yxx@0503"
-export DB_DRIVER="com.mysql.cj.jdbc.Driver"
+# export DB_URL="jdbc:mysql://localhost:3306/webhook?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+# export DB_USERNAME="root"
+# export DB_PASSWORD="root123"
+# export DB_DRIVER="com.mysql.cj.jdbc.Driver"
 
 # 2. Redis Configuration (Optional, for High Performance)
 export REDIS_HOST="localhost"
