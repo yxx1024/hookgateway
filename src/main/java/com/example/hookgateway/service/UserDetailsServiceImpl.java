@@ -46,13 +46,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     private String getClientIP() {
-        // In some scopes request might enable to be injected directly or via
-        // RequestContextHolder
-        // Spring handles the proxying for request scope bean injection into singleton
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0];
+        return request.getRemoteAddr();
     }
 }

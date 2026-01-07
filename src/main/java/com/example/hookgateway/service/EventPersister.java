@@ -26,6 +26,7 @@ public class EventPersister {
 
     private final StringRedisTemplate redisTemplate;
     private final WebhookEventRepository eventRepository;
+    private final WebhookProcessingService processingService;
 
     @Value("${app.ingest.stream.key:webhook:events:ingest}")
     private String ingestStreamKey;
@@ -110,22 +111,9 @@ public class EventPersister {
                             java.util.Collections.singletonMap("eventId", String.valueOf(saved.getId())));
                 }
             } else {
-                // Even in local async mode?
-                // If ingest is redis but distribution is async, we can't easily trigger the
-                // "IngestController.triggerAutoForward"
-                // because we are in a separate service.
-                // Ideally, if users want high-perf ingest, they likely want Redis distribution
-                // too.
-                // But if they just want buffer DB writes but process locally:
-                // We can inject ReplayService or IngestController (circular?) -> better inject
-                // ReplayService and manually trigger?
-                // But ReplayService usually takes (method, headers, payload), it doesn't do the
-                // "Find Subscriptions" logic which contains filters/auth.
-                // That logic is in IngestController.processEvent(event).
-                // We should extract `processEvent` to a Service to avoid Controller dependency
-                // or move logic to `WebhookService`.
-                // For now, I will assume distributionMode=redis is the intended companion.
-                // If not, I'll log a warning or try to support it by calling a service method.
+                for (WebhookEvent saved : savedEvents) {
+                    processingService.processEventAsync(saved);
+                }
             }
 
             // ACK

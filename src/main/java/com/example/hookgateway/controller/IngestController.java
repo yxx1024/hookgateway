@@ -1,21 +1,16 @@
 package com.example.hookgateway.controller;
 
-import com.example.hookgateway.model.Subscription;
 import com.example.hookgateway.model.WebhookEvent;
-import com.example.hookgateway.repository.SubscriptionRepository;
 import com.example.hookgateway.repository.WebhookEventRepository;
-import com.example.hookgateway.service.ReplayService;
-import com.example.hookgateway.service.ReplayService.ReplayResult;
+import com.example.hookgateway.service.WebhookProcessingService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Enumeration;
-import java.util.List;
 
 @RestController
 @RequestMapping("/hooks")
@@ -24,13 +19,7 @@ import java.util.List;
 public class IngestController {
 
     private final WebhookEventRepository eventRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final ReplayService replayService;
-    private final com.example.hookgateway.security.VerifierFactory verifierFactory;
-
-    // V11: Tunnel support
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.example.hookgateway.websocket.TunnelSessionManager tunnelSessionManager;
+    private final WebhookProcessingService processingService;
 
     // Redis support - optional
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -103,171 +92,10 @@ public class IngestController {
                 log.warn("Mode is 'redis' but RedisTemplate is null. Fallback to Local @Async.");
             }
             log.info("Dispatching event {} via Local @Async", savedEvent.getId());
-            triggerAutoForward(savedEvent);
+            processingService.processEventAsync(savedEvent);
         }
 
         return org.springframework.http.ResponseEntity.ok("Received");
-    }
-
-    @Async
-    protected void triggerAutoForward(WebhookEvent event) {
-        processEvent(event);
-    }
-
-    /**
-     * Core processing logic, extracted for reuse by ReplayController or Redis
-     * Consumer
-     */
-    public void processEvent(WebhookEvent event) {
-        List<Subscription> subs = subscriptionRepository.findBySourceAndActiveTrue(event.getSource());
-
-        if (subs.isEmpty()) {
-            event.setStatus("NO_MATCH");
-            eventRepository.save(event);
-            return;
-        }
-
-        StringBuilder report = new StringBuilder();
-        int successCount = 0;
-
-        for (Subscription sub : subs) {
-            // V10: Security Verification Logic
-            boolean isVerified = true;
-            String verificationLog = "";
-
-            if (!"NONE".equalsIgnoreCase(sub.getVerifyMethod()) && sub.getVerifySecret() != null) {
-                com.example.hookgateway.security.VerifierStrategy strategy = verifierFactory
-                        .getStrategy(sub.getVerifyMethod());
-
-                if (strategy != null) {
-                    try {
-                        // Strategy now handles header extraction (HMAC uses sub.signatureHeader, WeChat
-                        // uses standard headers)
-                        boolean valid = strategy.verify(event, sub);
-                        if (!valid) {
-                            isVerified = false;
-                            verificationLog = "Verification Failed: Invalid Signature or Request";
-                        }
-                    } catch (Exception e) {
-                        isVerified = false;
-                        verificationLog = "Verification Error: " + e.getMessage();
-                        log.error("Verification exception for subscription {}", sub.getId(), e);
-                    }
-                }
-            }
-
-            if (!isVerified) {
-                report.append("--- Verification Failed for ").append(sub.getTargetUrl()).append(" ---\n")
-                        .append(verificationLog).append("\n\n");
-                continue;
-            }
-
-            // V9: Filter Logic
-            boolean shouldSend = true;
-            String filterLog = "";
-
-            if ("JSON_PATH".equals(sub.getFilterType()) && sub.getFilterRule() != null
-                    && !sub.getFilterRule().isEmpty()) {
-                try {
-                    com.jayway.jsonpath.DocumentContext jsonContext = com.jayway.jsonpath.JsonPath
-                            .parse(event.getPayload());
-                    // Support boolean expressions like $.type == 'push'
-                    // JsonPath.parse(json).read("$.type == 'push'", List.class) returns filtered
-                    // objects.
-                    // But here we want a condition.
-                    // Actually, Jayway JsonPath is for extraction. For filtering, we might need
-                    // Predicates.
-                    // But simple usage: check if extraction is not empty or if value matches.
-                    // User might enter: $.store.book[?(@.price < 10)]
-                    // Let's assume User enters a Path that should return NON-EMPTY result if match.
-
-                    // Actually, let's use a simpler approach for MVP:
-                    // If the rule is a Predicate (starts with ?), treat as filter.
-                    // If standard path, check if exists.
-
-                    // Wait, user wants $.type == 'push'. Standard JsonPath: $[?(@.type == 'push')]
-                    // So if user enters $[?(@.type == 'push')], and result is not empty List, then
-                    // match.
-
-                    Object result = jsonContext.read(sub.getFilterRule());
-                    if (result instanceof List && ((List<?>) result).isEmpty()) {
-                        shouldSend = false;
-                        filterLog = "Skipped by JSONPath filter: No match for " + sub.getFilterRule();
-                    } else if (result == null) {
-                        shouldSend = false;
-                        filterLog = "Skipped by JSONPath filter: Result null";
-                    }
-
-                    // Note: If user enters just $.type, and it exists, it sends.
-                } catch (Exception e) {
-                    shouldSend = false;
-                    filterLog = "Skipped by JSONPath filter: Parsing error (" + e.getMessage() + ")";
-                }
-            } else if ("REGEX".equals(sub.getFilterType()) && sub.getFilterRule() != null
-                    && !sub.getFilterRule().isEmpty()) {
-                try {
-                    // Fix: Use Google RE2J for linear time matching (ReDoS safe)
-                    // No need for complex timeout/future logic anymore
-                    com.google.re2j.Pattern pattern = com.google.re2j.Pattern.compile(sub.getFilterRule());
-                    boolean found = pattern.matcher(event.getPayload()).find();
-
-                    if (!found) {
-                        shouldSend = false;
-                        filterLog = "Skipped by Regex filter: No match for " + sub.getFilterRule();
-                    }
-                } catch (Exception e) {
-                    shouldSend = false;
-                    filterLog = "Skipped by Regex filter: Error (" + e.getMessage() + ")";
-                }
-            }
-
-            if (!shouldSend) {
-                report.append("--- Filtered for ").append(sub.getTargetUrl()).append(" ---\n")
-                        .append(filterLog).append("\n\n");
-                continue;
-            }
-
-            // V11: Tunnel Routing Logic
-            if ("TUNNEL".equalsIgnoreCase(sub.getDestinationType())) {
-                // 现在通过 SessionManager 进行路由（支持本地路由和分布式广播）
-                String deliveryLog = tunnelSessionManager.routeEvent(event, sub.getTunnelKey());
-                report.append("--- Delivery Report for TUNNEL (").append(sub.getTunnelKey()).append(") ---\n")
-                        .append(deliveryLog).append("\n\n");
-                continue;
-            }
-
-            // V8: Clear previous logs before starting a new subscription delivery
-            replayService.startNewTracking();
-
-            ReplayResult result = replayService.replayWithRetry(
-                    event.getMethod(),
-                    event.getHeaders(),
-                    event.getPayload(),
-                    sub.getTargetUrl());
-
-            if (result.isSuccess())
-                successCount++;
-
-            // Use the detailed log from ReplayResult
-            report.append("--- Delivery Report for ").append(sub.getTargetUrl()).append(" ---\n")
-                    .append(result.getLog()).append("\n\n");
-        }
-
-        // Update overall status
-        if (successCount == subs.size()) {
-            event.setStatus("SUCCESS");
-        } else if (successCount > 0) {
-            event.setStatus("PARTIAL_SUCCESS");
-        } else {
-            event.setStatus("FAILED");
-        }
-
-        event.setDeliveryCount(subs.size());
-        event.setDeliveryDetails(report.toString());
-        event.setLastDeliveryAt(LocalDateTime.now());
-        eventRepository.save(event);
-
-        log.info("Event {} processed: {}/{} success", event.getId(), successCount, subs.size());
     }
 
 }

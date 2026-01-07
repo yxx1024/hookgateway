@@ -2,7 +2,6 @@ package com.example.hookgateway.service;
 
 import com.example.hookgateway.model.WebhookEvent;
 import com.example.hookgateway.repository.WebhookEventRepository;
-import com.example.hookgateway.controller.IngestController;
 import com.example.hookgateway.config.RedisStreamConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +19,7 @@ import java.util.Optional;
 public class WebhookStreamConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
     private final WebhookEventRepository eventRepository;
-    private final IngestController ingestController;
+    private final WebhookProcessingService processingService;
     private final StringRedisTemplate redisTemplate;
 
     @Override
@@ -38,7 +37,7 @@ public class WebhookStreamConsumer implements StreamListener<String, MapRecord<S
 
             Optional<WebhookEvent> eventOpt = eventRepository.findById(eventId);
             if (eventOpt.isPresent()) {
-                ingestController.processEvent(eventOpt.get());
+                processingService.processEvent(eventOpt.get());
             } else {
                 log.warn("Event not found in database: eventId={}", eventId);
             }
