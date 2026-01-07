@@ -35,8 +35,8 @@ public class WechatPayVerifierTest {
     @Test
     public void testVerifySuccess() throws Exception {
         String payload = "{\"amount\": 100}";
-        String timestamp = "1678888888";
-        String nonce = "randomNonce";
+        String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
+        String nonce = java.util.UUID.randomUUID().toString();
 
         // Construct Signature String: timestamp + "\n" + nonce + "\n" + body + "\n"
         String signatureStr = timestamp + "\n" + nonce + "\n" + payload + "\n";
@@ -68,8 +68,8 @@ public class WechatPayVerifierTest {
     public void testVerifyFail_TamperedPayload() throws Exception {
         String payload = "{\"amount\": 100}";
         String tamperedPayload = "{\"amount\": 999}";
-        String timestamp = "1678888888";
-        String nonce = "randomNonce";
+        String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
+        String nonce = java.util.UUID.randomUUID().toString();
 
         String signatureStr = timestamp + "\n" + nonce + "\n" + payload + "\n";
 

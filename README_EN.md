@@ -48,19 +48,21 @@ Don't need to process all events? Use JSONPath or Regex rules to forward only ke
 
 ```bash
 # Standalone Deployment (H2 In-Memory Database, no MySQL/Redis required)
-docker-compose up hookgateway
+ADMIN_PASSWORD="your_strong_password" docker-compose up hookgateway
 
 # Full Deployment (MySQL + Redis)
-docker-compose --profile full up
+ADMIN_PASSWORD="your_strong_password" docker-compose --profile full up
 ```
 
 ### Option 2: Run Locally
 
 ```bash
-# Use the startup script (automatically releases ports)
+# Use the startup script
+export ADMIN_PASSWORD="your_strong_password"
 ./start.sh
 
 # Or run manually
+export ADMIN_PASSWORD="your_strong_password"
 mvn clean package -DskipTests
 java -jar target/hookgateway-0.0.1-SNAPSHOT.jar
 ```
@@ -68,8 +70,8 @@ java -jar target/hookgateway-0.0.1-SNAPSHOT.jar
 ### Access
 
 - **Dashboard**: http://localhost:8080
-- **H2 Console**: http://localhost:8080/h2-console (User: `sa`, Password: empty)
-- **Default Login**: `admin` / `admin123` (Password change required on first login)
+- **H2 Console**: http://localhost:8080/h2-console (enable `H2_CONSOLE_ENABLED`)
+- **Initial Login**: `admin` / `${ADMIN_PASSWORD}` (no account created if not set)
 
 ## 🐳 Docker Deployment Options
 
@@ -87,8 +89,17 @@ java -jar target/hookgateway-0.0.1-SNAPSHOT.jar
 | `DB_URL` | `jdbc:h2:mem:webhookdb` | Database Connection URL |
 | `DB_USERNAME` | `sa` | Database Username |
 | `DB_PASSWORD` | (empty) | Database Password |
+| `DB_DRIVER` | `org.h2.Driver` | Database Driver |
 | `REDIS_HOST` | `localhost` | Redis Host |
+| `REDIS_PORT` | `6379` | Redis Port |
+| `REDIS_PASSWORD` | (empty) | Redis Password |
 | `DISTRIBUTION_MODE` | `async` | Distribution Mode (`async`/`redis`) |
+| `INGEST_MODE` | `sync` | Ingest Mode (`sync`/`redis`) |
+| `INGEST_STREAM_KEY` | `webhook:events:ingest` | Redis Ingest Stream Key |
+| `ADMIN_PASSWORD` | (no default) | Initial admin password (required on first start) |
+| `WS_ALLOWED_ORIGINS` | `http://localhost:8080,...` | WebSocket allowed origins (comma-separated) |
+| `SSRF_BLOCKED_IPS` | `127.0.0.1,...` | SSRF blocked IP/CIDR list |
+| `H2_CONSOLE_ENABLED` | `false` | Enable H2 Console |
 
 ## 📂 Path Description
 

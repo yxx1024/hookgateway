@@ -10,8 +10,8 @@ class UrlValidatorTest {
 
     @Test
     void testSafeUrls() {
-        assertTrue(validator.isSafeUrl("https://www.google.com"));
-        assertTrue(validator.isSafeUrl("http://example.com/webhook"));
+        assertTrue(validator.isSafeUrl("https://1.1.1.1"));
+        assertTrue(validator.isSafeUrl("http://8.8.8.8/webhook"));
     }
 
     @Test

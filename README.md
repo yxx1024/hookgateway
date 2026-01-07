@@ -51,10 +51,10 @@
 
 ```bash
 # 单机部署 (H2 内存数据库，无需 MySQL/Redis)
-docker-compose up hookgateway
+ADMIN_PASSWORD="your_strong_password" docker-compose up hookgateway
 
 # 完整部署 (MySQL + Redis)
-docker-compose --profile full up
+ADMIN_PASSWORD="your_strong_password" docker-compose --profile full up
 ```
 
 ### 方式二：本地运行
@@ -63,9 +63,12 @@ docker-compose --profile full up
 # 使用启动脚本 (推荐)
 # 1. 打开脚本配置数据库/Redis信息: vi start.sh
 # 2. 运行脚本 (会自动编译并启动)
+# 3. 首次启动需设置 ADMIN_PASSWORD
+export ADMIN_PASSWORD="your_strong_password"
 ./start.sh
 
 # 或手动运行
+export ADMIN_PASSWORD="your_strong_password"
 mvn clean package -DskipTests
 java -jar target/hookgateway-0.0.1-SNAPSHOT.jar
 ```
@@ -73,8 +76,8 @@ java -jar target/hookgateway-0.0.1-SNAPSHOT.jar
 ### 访问
 
 - **Dashboard**: http://localhost:8080
-- **H2 Console**: http://localhost:8080/h2-console (用户名: `sa`, 密码为空)
-- **默认登录**: `admin` / `admin123` (首次登录需改密)
+- **H2 Console**: http://localhost:8080/h2-console (需启用 H2_CONSOLE_ENABLED)
+- **初始登录**: `admin` / `${ADMIN_PASSWORD}` (未设置则不会创建账号)
 
 ## 🐳 Docker 部署选项
 
@@ -94,10 +97,15 @@ java -jar target/hookgateway-0.0.1-SNAPSHOT.jar
 | `DB_PASSWORD` | (空) | 数据库密码 |
 | `DB_DRIVER` | `org.h2.Driver` | 数据库驱动 (MySQL需设为 `com.mysql.cj.jdbc.Driver`) |
 | `REDIS_HOST` | `localhost` | Redis 地址 |
+| `REDIS_PORT` | `6379` | Redis 端口 |
+| `REDIS_PASSWORD` | (空) | Redis 密码 |
 | `DISTRIBUTION_MODE` | `async` | 分发模式 (`async`/`redis`) |
 | `INGEST_MODE` | `sync` | 摄入模式 (`sync`/`redis`) |
-| `ADMIN_INIT_PASSWORD` | (随机) | 初始管理员密码 (仅首次有效) |
-| `WS_ALLOWED_ORIGINS` | `localhost...` | WebSocket 允许来源 (逗号分隔) |
+| `INGEST_STREAM_KEY` | `webhook:events:ingest` | Redis 摄入流 Key |
+| `ADMIN_PASSWORD` | (无默认) | 初始管理员密码 (仅首次有效，必须显式设置) |
+| `WS_ALLOWED_ORIGINS` | `http://localhost:8080,...` | WebSocket 允许来源 (逗号分隔) |
+| `SSRF_BLOCKED_IPS` | `127.0.0.1,...` | SSRF 禁止访问的 IP/CIDR 列表 |
+| `H2_CONSOLE_ENABLED` | `false` | 是否启用 H2 Console |
 
 ## 📂 路径说明
 
