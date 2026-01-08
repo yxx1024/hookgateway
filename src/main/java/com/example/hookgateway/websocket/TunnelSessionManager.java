@@ -16,8 +16,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tunnel Session Manager
- * 管理活跃的 WebSocket Tunnel 连接，支持分布式环境下的消息路由
+ * 隧道会话管理器
+ * 管理活跃的 WebSocket 隧道连接，支持分布式环境下的消息路由
  */
 @Component
 @Slf4j
@@ -30,10 +30,10 @@ public class TunnelSessionManager {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private StringRedisTemplate redisTemplate;
 
-    // Key: tunnelKey, Value: WebSocketSession
+    // 键：tunnelKey，值：WebSocketSession
     private final Map<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
 
-    // V14: Local fallback cache for BOLA protection (Size restricted)
+    // V14: BOLA 保护的本地兜底缓存（限制大小）
     private final Map<Long, String> localEventTunnelMap = java.util.Collections
             .synchronizedMap(new java.util.LinkedHashMap<Long, String>() {
                 protected boolean removeEldestEntry(Map.Entry<Long, String> eldest) {
@@ -42,11 +42,11 @@ public class TunnelSessionManager {
             });
 
     /**
-     * 将 Webhook 事件路由到正确的 Tunnel 客户端
-     * 如果本地不存在连接，则通过 Redis 广播到集群其他节点
+     * 将 Webhook 事件路由到正确的隧道客户端
+     * 本地无连接时通过 Redis 广播到集群其他节点
      */
     public String routeEvent(WebhookEvent event, String tunnelKey) {
-        // V13: BOLA Protection - Register mapping before routing
+        // V13: BOLA 保护 - 路由前先登记映射
         registerEventTunnelMapping(event.getId(), tunnelKey);
 
         WebSocketSession session = getSession(tunnelKey);
@@ -129,7 +129,7 @@ public class TunnelSessionManager {
     }
 
     /**
-     * 注册一个新的 Tunnel 连接
+     * 注册新的隧道连接
      */
     public void registerSession(String tunnelKey, WebSocketSession session) {
         // 如果已存在，先关闭旧连接
@@ -149,7 +149,7 @@ public class TunnelSessionManager {
     }
 
     /**
-     * 移除指定的 Tunnel 连接，增加 session 校验防止竞态
+     * 移除指定隧道连接，增加 session 校验避免竞态
      */
     public void removeSession(String tunnelKey, WebSocketSession session) {
         if (tunnelKey == null || session == null)
@@ -165,7 +165,7 @@ public class TunnelSessionManager {
     }
 
     /**
-     * 根据 tunnelKey 获取 WebSocket Session
+     * 根据 tunnelKey 获取 WebSocket 会话
      */
     public WebSocketSession getSession(String tunnelKey) {
         WebSocketSession session = activeSessions.get(tunnelKey);
@@ -178,7 +178,7 @@ public class TunnelSessionManager {
     }
 
     /**
-     * 检查 Tunnel 是否在线
+     * 检查隧道是否在线
      */
     public boolean isConnected(String tunnelKey) {
         WebSocketSession session = getSession(tunnelKey);
@@ -195,13 +195,13 @@ public class TunnelSessionManager {
     }
 
     /**
-     * V13: 将 Event ID 与允许处理该事件的 Tunnel Key 绑定到 Redis & Local Cache
+     * V13: 将事件 ID 与允许处理该事件的 tunnelKey 绑定到 Redis 与本地缓存
      */
     public void registerEventTunnelMapping(Long eventId, String tunnelKey) {
         if (eventId == null || tunnelKey == null)
             return;
 
-        // Write to local cache first
+        // 先写入本地缓存
         localEventTunnelMap.put(eventId, tunnelKey);
 
         if (redisTemplate != null) {
@@ -215,13 +215,13 @@ public class TunnelSessionManager {
     }
 
     /**
-     * V13: 从 Redis 或 Local Cache 获取该事件绑定的 Tunnel Key
+     * V13: 从 Redis 或本地缓存获取事件绑定的 tunnelKey
      */
     public String getTunnelKeyForEvent(Long eventId) {
         if (eventId == null)
             return null;
 
-        // Check local first (faster & fallback)
+        // 先查本地（更快且可兜底）
         String key = localEventTunnelMap.get(eventId);
         if (key != null)
             return key;

@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理资源未找到异常 (404)
-     * 避免像 favicon.ico 这种缺失资源在控制台打印 ERROR 堆栈
+     * 避免像 favicon.ico 这种缺失资源在控制台打印错误堆栈
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public Object handleNotFound(NoResourceFoundException e, HttpServletRequest request) {

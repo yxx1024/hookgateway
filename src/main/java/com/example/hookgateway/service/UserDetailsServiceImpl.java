@@ -24,7 +24,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // V17: Brute Force Protection
+        // V17: 暴力破解防护
         String ip = getClientIP();
         if (loginAttemptService.isBlocked(ip)) {
             throw new org.springframework.security.authentication.LockedException(
@@ -38,10 +38,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 user.getUsername(),
                 user.getPassword(),
                 user.isEnabled(),
-                true, // accountNonExpired
-                true, // credentialsNonExpired
-                true, // accountNonLocked (Actually we manage IP lock ourselves, but we could set this
-                      // false too if we want to show generic message)
+                true, // 账号未过期
+                true, // 凭证未过期
+                true, // 账号未锁定（当前由 IP 维度控制，必要时可改为 false 统一提示）
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN")));
     }
 

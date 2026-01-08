@@ -24,7 +24,7 @@ public class User {
     private String username;
 
     @Column(nullable = false, length = 100)
-    private String password; // BCrypt encoded
+    private String password; // BCrypt 编码后的密码
 
     @Column(nullable = false)
     private boolean enabled = true;

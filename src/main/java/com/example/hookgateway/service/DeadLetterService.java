@@ -12,7 +12,7 @@ import java.util.Map;
 
 /**
  * 死信队列服务：处理反复失败、超过最大重试次数的消息。
- * 当消息投递失败次数超过阈值时，将其移至 DLQ 并从主 Stream 中 ACK。
+ * 超过阈值后移入死信队列（DLQ），并从主流中确认（ACK）。
  */
 @Service
 @Slf4j

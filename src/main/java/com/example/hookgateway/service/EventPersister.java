@@ -36,28 +36,12 @@ public class EventPersister {
 
     private static final int BATCH_SIZE = 500;
 
-    @Scheduled(fixedDelay = 100) // Poll every 100ms
+    @Scheduled(fixedDelay = 100) // 每 100ms 轮询一次
     @SuppressWarnings("unchecked")
     public void processPendingEvents() {
         try {
-            // Read events from Redis Stream
-            // Using ReadOffset.from("0-0") is for reading *all* history if we were not
-            // deleting.
-            // But here we want to read items, process them, and then perhaps delete them or
-            // just ACK if using groups.
-            // For simplicity and high throughput without consumer groups (since this is a
-            // single persister usually, or strict partitioning logic needed):
-            // We can use simple XREAD (without group) and XDEL after processing.
-            // Or use Group if we want HA.
-            // Implementing with Consumer Group is safer for restarts.
-
-            // Let's use simple XREAD + XDEL for the "Ingest Queue" pattern which is often
-            // faster for simple buffering.
-            // However, to be robust against crash *during* processing, Group with ACK is
-            // better.
-
-            // Let's stick to the Plan: "Consumer to pull batch from webhook:events:ingest"
-            // We need to ensure the group exists.
+            // 使用消费者组从 Redis 流批量拉取并 ACK，重启更安全
+            // 需要先确保消费者组存在
 
             String group = "webhook-ingest-group";
             String consumer = "persister-" + java.net.InetAddress.getLocalHost().getHostName();
@@ -65,7 +49,7 @@ public class EventPersister {
             try {
                 redisTemplate.opsForStream().createGroup(ingestStreamKey, group);
             } catch (Exception e) {
-                // Group already exists, ignore
+                // 消费者组已存在，忽略即可
             }
 
             List<MapRecord<String, Object, Object>> messages = redisTemplate.opsForStream().read(
@@ -87,23 +71,20 @@ public class EventPersister {
                         .method((String) body.get("method"))
                         .headers((String) body.get("headers"))
                         .payload((String) body.get("payload"))
-                        .receivedAt(LocalDateTime.parse((String) body.get("receivedAt"))) // Ensure correct parsing
-                                                                                          // format if needed, or use
-                                                                                          // ISO default
+                        .receivedAt(LocalDateTime.parse((String) body.get("receivedAt"))) // 按 ISO 时间解析
                         .status("PENDING")
                         .build();
                 eventsToSave.add(event);
                 recordIds.add(message.getId().getValue());
             }
 
-            // Batch Insert
+            // 批量入库
             List<WebhookEvent> savedEvents = eventRepository.saveAll(eventsToSave);
             log.info("[Persister] Flushed {} events to DB", savedEvents.size());
 
-            // Post-process: Dispatch specific logic
-            // We need to bridge to the existing distribution logic
+            // 入库后继续分发逻辑
             if ("redis".equalsIgnoreCase(distributionMode)) {
-                // Push to Dispatch Stream
+                // 推送到分发流
                 for (WebhookEvent saved : savedEvents) {
                     log.info("Dispatching event {} via Redis Stream (from Persister)", saved.getId());
                     redisTemplate.opsForStream().add(
@@ -116,10 +97,10 @@ public class EventPersister {
                 }
             }
 
-            // ACK
+            // 确认（ACK）
             redisTemplate.opsForStream().acknowledge(ingestStreamKey, group, recordIds.toArray(new String[0]));
 
-            // Optional: DEL to free memory
+            // 可选：删除已处理记录以释放内存
             redisTemplate.opsForStream().delete(ingestStreamKey, recordIds.toArray(new String[0]));
 
         } catch (Exception e) {

@@ -6,8 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Service to track login attempts and block IPs to prevent brute force attacks.
- * Policy: 5 failed attempts locks the IP for 15 minutes.
+ * 记录登录失败并按 IP 封禁，防止暴力破解。
+ * 策略：5 次失败封禁 15 分钟。
  */
 @Service
 public class LoginAttemptService {
@@ -15,7 +15,7 @@ public class LoginAttemptService {
     private static final int MAX_ATTEMPTS = 5;
     private static final long BLOCK_DURATION_MS = TimeUnit.MINUTES.toMillis(15);
 
-    // Stores IP -> FailedAttempt
+    // 记录 IP -> 失败次数
     private final Map<String, FailedAttempt> attemptsCache = new ConcurrentHashMap<>();
 
     public void loginSucceeded(String key) {
@@ -29,8 +29,7 @@ public class LoginAttemptService {
                 return new FailedAttempt(1, now);
             }
 
-            // If the last failure was a long time ago (longer than block duration),
-            // reset the counter. (Sliding window-ish behavior)
+            // 若上次失败距今超过封禁时长，则重置计数（类滑动窗口）
             if (now - attempt.lastFailureTime > BLOCK_DURATION_MS) {
                 return new FailedAttempt(1, now);
             }
@@ -48,11 +47,9 @@ public class LoginAttemptService {
         }
 
         long now = System.currentTimeMillis();
-        // Check if lock has expired
+        // 检查封禁是否过期
         if (now - attempt.lastFailureTime > BLOCK_DURATION_MS) {
-            // It's expired, but we don't clean it up here (lazy cleanup on next write or
-            // dedicated cleaner)
-            // Functionally it is not blocked.
+            // 已过期但不立即清理，功能上视为未封禁
             return false;
         }
 

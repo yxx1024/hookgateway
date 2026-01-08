@@ -35,16 +35,16 @@ public class DashboardController {
                         @RequestParam(defaultValue = "15") int size,
                         @RequestParam(required = false) String q,
                         Model model) {
-                // 1. Get known sources
+                // 1. 获取已订阅的来源
                 Set<String> knownSources = subscriptionRepository.findAll().stream()
                                 .map(Subscription::getSource)
                                 .collect(Collectors.toSet());
 
-                // 2. Build Dynamic Specification for Filtering
+                // 2. 构建动态查询条件
                 Specification<WebhookEvent> spec = (root, query, cb) -> {
                         List<Predicate> predicates = new ArrayList<>();
 
-                        // Tab filtering: mapped vs unmapped
+                        // Tab 过滤：已订阅 vs 未订阅
                         if ("subscribed".equals(tab)) {
                                 predicates.add(root.get("source")
                                                 .in(knownSources.isEmpty() ? List.of("__NONE__") : knownSources));
@@ -54,7 +54,7 @@ public class DashboardController {
                                 }
                         }
 
-                        // Keyword searching: source, method, payload
+                        // 关键字搜索：source、method、payload
                         if (q != null && !q.trim().isEmpty()) {
                                 String keyword = "%" + q.toLowerCase() + "%";
                                 predicates.add(cb.or(
@@ -66,19 +66,18 @@ public class DashboardController {
                         return cb.and(predicates.toArray(new Predicate[0]));
                 };
 
-                // 3. Execution Query with Pagination
+                // 3. 分页查询
                 PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "receivedAt"));
                 Page<WebhookEvent> eventPage = eventRepository.findAll(spec, pageRequest);
 
-                // 4. Count for badges (Simplified, might be expensive in large DB but okay for
-                // now)
+                // 4. 统计徽章计数（简单实现，大数据量下可能偏重）
                 long subscribedTotal = eventRepository.count((root, query,
                                 cb) -> knownSources.isEmpty() ? cb.disjunction() : root.get("source").in(knownSources));
                 long unmappedTotal = eventRepository
                                 .count((root, query, cb) -> knownSources.isEmpty() ? cb.conjunction()
                                                 : cb.not(root.get("source").in(knownSources)));
 
-                // 5. Model data
+                // 5. 组装页面数据
                 model.addAttribute("tab", tab);
                 model.addAttribute("eventPage", eventPage);
                 model.addAttribute("query", q);

@@ -27,7 +27,7 @@ public class HmacVerifier implements VerifierStrategy {
             return false;
         }
 
-        // Extract signature from headers
+        // 从请求头中提取签名
         String signature = extractHeaderValue(event.getHeaders(), signatureHeaderName);
         if (signature == null) {
             log.warn("HMAC verification failed: Signature header '{}' not found", signatureHeaderName);
@@ -35,16 +35,16 @@ public class HmacVerifier implements VerifierStrategy {
         }
 
         try {
-            // 1. Calculate Expected Hash
+            // 1. 计算期望的 HMAC
             String expectedHash = calculateHmac(payload, secret);
 
-            // 2. Normalize input signature (remove common prefixes like "sha256=")
+            // 2. 规范化签名（去掉常见前缀，如 "sha256="）
             String cleanSignature = signature;
             if (signature.startsWith("sha256=")) {
                 cleanSignature = signature.substring(7);
             }
 
-            // 3. Constant-time comparison to prevent timing attacks
+            // 3. 常量时间比较，防止计时攻击
             return java.security.MessageDigest.isEqual(
                     cleanSignature.getBytes(StandardCharsets.UTF_8),
                     expectedHash.getBytes(StandardCharsets.UTF_8));
@@ -58,10 +58,10 @@ public class HmacVerifier implements VerifierStrategy {
     private String extractHeaderValue(String allHeaders, String headerName) {
         if (allHeaders == null || headerName == null)
             return null;
-        // Simple search logic
+        // 简单查找逻辑
         String[] lines = allHeaders.split("\n");
         for (String line : lines) {
-            // Header format: "Key: Value"
+            // Header 格式: "Key: Value"
             int colonIndex = line.indexOf(':');
             if (colonIndex > 0) {
                 String key = line.substring(0, colonIndex).trim();

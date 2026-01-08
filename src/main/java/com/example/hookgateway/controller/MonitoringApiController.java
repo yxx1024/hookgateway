@@ -89,7 +89,7 @@ public class MonitoringApiController {
 
         try {
             // 获取 HTTP 请求总数
-            // http.server.requests is usually a Timer
+            // http.server.requests 通常是一个 Timer
             Timer timer = meterRegistry.find("http.server.requests").timer();
             if (timer != null) {
                 stats.put("totalRequests", timer.count());

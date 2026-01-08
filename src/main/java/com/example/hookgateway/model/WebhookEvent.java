@@ -25,7 +25,7 @@ public class WebhookEvent {
 
     private LocalDateTime receivedAt;
 
-    // V6: Delivery fields
+    // V6: 投递结果相关字段
     @Builder.Default
     private String status = "RECEIVED"; // RECEIVED, SUCCESS, PARTIAL_SUCCESS, FAILED, NO_MATCH
 
@@ -33,7 +33,7 @@ public class WebhookEvent {
     private Integer deliveryCount = 0;
 
     @Column(columnDefinition = "TEXT")
-    private String deliveryDetails; // JSON or formatted text of delivery results
+    private String deliveryDetails; // 投递结果明细（JSON 或格式化文本）
 
     private LocalDateTime lastDeliveryAt;
 }

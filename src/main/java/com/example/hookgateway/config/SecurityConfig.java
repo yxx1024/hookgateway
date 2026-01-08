@@ -54,8 +54,8 @@ public class SecurityConfig {
                                                 .defaultSuccessUrl("/", true)
                                                 .failureHandler((request, response, exception) -> {
                                                         String error = "true";
-                                                        // Check for LockedException (wrapped in
-                                                        // InternalAuthenticationServiceException or direct)
+                                                        // 判断是否为 LockedException（可能被包在
+                                                        // InternalAuthenticationServiceException 里，也可能直接抛出）
                                                         org.slf4j.LoggerFactory.getLogger(SecurityConfig.class).info(
                                                                         "[LoginFailure] Exception type: {}, Cause: {}",
                                                                         exception.getClass().getName(),

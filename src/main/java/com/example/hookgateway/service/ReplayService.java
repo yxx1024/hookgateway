@@ -19,7 +19,7 @@ public class ReplayService {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
-    // V8: ThreadLocal to collect all retry attempts' logs
+    // V8: 使用 ThreadLocal 收集所有重试尝试的日志
     private static final ThreadLocal<StringBuilder> logAccumulator = ThreadLocal.withInitial(StringBuilder::new);
     private static final ThreadLocal<Integer> attemptCounter = ThreadLocal.withInitial(() -> 0);
 
@@ -67,7 +67,7 @@ public class ReplayService {
             throw new RuntimeException("HTTP " + result.getStatusCode() + " / " + result.getMessage());
         }
 
-        // If success, include the accumulated log
+        // 成功时返回累计日志
         result.setLog(logAccumulator.get().toString());
         return result;
     }
@@ -86,8 +86,7 @@ public class ReplayService {
     }
 
     /**
-     * Entry point to clear log if needed from outside, though usually handled in
-     * IngestController
+     * 需要时可从外部清理日志，一般由 IngestController 调用
      */
     public void startNewTracking() {
         clearLog();
@@ -95,7 +94,7 @@ public class ReplayService {
 
     public ReplayResult replay(String method, String headersRaw, String payload, String targetUrl) {
         try {
-            // V13: SSRF Protection (Round 2: DNS Pinning)
+            // V13: SSRF 防护（第二轮：DNS 固定）
             com.example.hookgateway.utils.UrlValidator.ValidatedTarget validatedTarget;
             try {
                 validatedTarget = urlValidator.validate(targetUrl);
@@ -113,23 +112,22 @@ public class ReplayService {
 
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(validatedTarget.getTargetUrl()))
-                    .timeout(Duration.ofSeconds(10)) // V12: Request timeout
+                    .timeout(Duration.ofSeconds(10)) // V12: 请求超时
                     .method(method, HttpRequest.BodyPublishers.ofString(payload == null ? "" : payload));
 
-            // If we are connecting via IP (for HTTP), we MUST set the Host header
-            // so Virtual Hosts work correctly.
+            // HTTP 使用 IP 直连时必须设置 Host，确保虚拟主机解析正确
             if (validatedTarget.isUseIpConnection()) {
                 requestBuilder.header("Host", validatedTarget.getOriginalHost());
             }
 
-            // Simple header parsing
+            // 简单解析并透传请求头
             String[] lines = headersRaw.split("\n");
             for (String line : lines) {
                 if (line.contains(":")) {
                     String[] parts = line.split(":", 2);
                     String key = parts[0].trim();
                     String value = parts[1].trim();
-                    // Skip restricted headers
+                    // 跳过受限头
                     if (!key.equalsIgnoreCase("content-length") && !key.equalsIgnoreCase("host")
                             && !key.equalsIgnoreCase("connection")) {
                         try {
@@ -151,7 +149,7 @@ public class ReplayService {
                     .statusCode(response.statusCode())
                     .message("HTTP " + response.statusCode())
                     .targetUrl(targetUrl)
-                    .log("") // Will be populated by replayWithRetry
+                    .log("") // 由 replayWithRetry 填充
                     .build();
 
         } catch (Exception e) {
@@ -161,7 +159,7 @@ public class ReplayService {
                     .statusCode(-1)
                     .message(e.getMessage())
                     .targetUrl(targetUrl)
-                    .log("") // Will be populated by replayWithRetry
+                    .log("") // 由 replayWithRetry 填充
                     .build();
         }
     }

@@ -24,17 +24,14 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (!userRepository.existsByUsername(DEFAULT_ADMIN_USERNAME)) {
-            // Fix: Strict requirement for ADMIN_PASSWORD
+            // 修复：强制要求设置 ADMIN_PASSWORD
             String initPassword = System.getenv("ADMIN_PASSWORD");
 
             if (initPassword == null || initPassword.isEmpty()) {
                 log.error("❌ 严重错误: 未设置 ADMIN_PASSWORD 环境变量。");
                 log.error("❌ 出于安全考虑，不再自动生成随机密码。请设置环境变量 ADMIN_PASSWORD 后重启应用。");
-                // Option: System.exit(1); but that might be too harsh for a library/framework
-                // usage,
-                // but for a standalone app it's appropriate.
-                // For now, we just don't create the user, which effectively locks the system
-                // (safe fail).
+                // 可选：System.exit(1) 直接退出，但对类库场景过于激进
+                // 对独立应用可接受。当前选择不创建用户，以安全方式阻断系统使用。
                 return;
             }
 
@@ -45,7 +42,7 @@ public class DataInitializer implements CommandLineRunner {
 
             log.info("✅ 已创建默认管理员账户: {} (使用 ADMIN_PASSWORD 环境变量)", DEFAULT_ADMIN_USERNAME);
         } else {
-            // Check if password has been changed
+            // 检查是否已修改初始密码
             userRepository.findByUsername(DEFAULT_ADMIN_USERNAME).ifPresent(user -> {
                 if (!user.isPasswordChanged()) {
                     log.warn("⚠️ 警告: 默认管理员账户 ({}) 尚未修改初始密码！", DEFAULT_ADMIN_USERNAME);

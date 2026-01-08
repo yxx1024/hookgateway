@@ -26,12 +26,12 @@ public class ReplayController {
             int responseStatusCode = 200;
 
             if (tunnelKey != null && !tunnelKey.trim().isEmpty()) {
-                // Tunnel Replay
+                // 隧道重放
                 String deliveryLog = tunnelSessionManager.routeEvent(event, tunnelKey);
                 isSuccess = deliveryLog.startsWith("SUCCESS");
                 resultMsg = "Tunnel Replay (" + tunnelKey + "): " + deliveryLog;
             } else if (targetUrl != null && !targetUrl.trim().isEmpty()) {
-                // HTTP URL Replay with Retry Support (V12)
+                // HTTP URL 重放（带重试，V12）
                 replayService.startNewTracking();
                 ReplayService.ReplayResult result = replayService.replayWithRetry(event.getMethod(),
                         event.getHeaders(), event.getPayload(), targetUrl);
@@ -45,7 +45,7 @@ public class ReplayController {
                 return ResponseEntity.badRequest().body("Either targetUrl or tunnelKey must be provided");
             }
 
-            // Append log to deliveryDetails
+            // 将日志追加到 deliveryDetails
             String timestamp = java.time.LocalDateTime.now()
                     .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             String newLog = String.format("\n[%s] %s", timestamp, resultMsg);
@@ -54,19 +54,18 @@ public class ReplayController {
             event.setDeliveryDetails(currentDetails == null ? newLog : currentDetails + newLog);
             event.setLastDeliveryAt(java.time.LocalDateTime.now());
 
-            // Update status based on last action result (V12.1: Nuanced State Machine)
+            // 根据最后一次操作结果更新状态（V12.1：细化状态机）
             String currentStatus = event.getStatus();
             if (isSuccess) {
                 event.setStatus("SUCCESS");
             } else {
-                // If manual replay failed but it was previously successful, 
-                // mark as PARTIAL_SUCCESS to indicate a regression/issue without losing history.
+                // 手动重放失败但历史成功时，标记为 PARTIAL_SUCCESS，保留历史信息
                 if ("SUCCESS".equals(currentStatus)) {
                     event.setStatus("PARTIAL_SUCCESS");
                 } else if (currentStatus == null || "RECEIVED".equals(currentStatus) || "PENDING".equals(currentStatus)) {
                     event.setStatus("FAILED");
                 }
-                // Maintain PARTIAL_SUCCESS, FAILED or NO_MATCH as is
+                // 保持 PARTIAL_SUCCESS、FAILED、NO_MATCH 不变
             }
 
             eventRepository.save(event);

@@ -30,23 +30,23 @@ public class SubscriptionController {
             @RequestParam(required = false) String verifySecret,
             @RequestParam(required = false) String signatureHeader,
             @RequestParam(defaultValue = "HTTP") String destinationType,
-            @RequestParam(required = false) String tunnelKey) { // Accept frontend key
+            @RequestParam(required = false) String tunnelKey) { // 接收前端传入的 key
 
         String finalTunnelKey = tunnelKey;
         String finalTargetUrl = targetUrl;
 
         if ("TUNNEL".equalsIgnoreCase(destinationType)) {
-            // Use frontend key if available, otherwise generate
+            // 前端传入优先，否则生成新 key
             if (finalTunnelKey == null || finalTunnelKey.isEmpty()) {
-                // Fix: Use SecureRandom instead of UUID for better entropy
+                // 修复：使用 SecureRandom 提升随机性
                 java.security.SecureRandom random = new java.security.SecureRandom();
-                byte[] bytes = new byte[24]; // 24 bytes -> 32 chars in Base64
+                byte[] bytes = new byte[24]; // 24 字节 -> Base64 后约 32 字符
                 random.nextBytes(bytes);
                 finalTunnelKey = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
             }
-            finalTargetUrl = "tunnel://" + finalTunnelKey; // Placeholder for DB constraint
+            finalTargetUrl = "tunnel://" + finalTunnelKey; // 满足 DB 非空约束的占位
         } else {
-            finalTunnelKey = null; // Clear key if not Tunnel
+            finalTunnelKey = null; // 非隧道模式清空 key
         }
 
         Subscription sub = Subscription.builder()

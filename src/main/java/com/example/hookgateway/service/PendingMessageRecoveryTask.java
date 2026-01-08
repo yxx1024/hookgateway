@@ -13,8 +13,8 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * 定时任务：恢复 Pending List 中长时间未确认的消息。
- * 当消费者宕机或处理失败时，消息会留在 Pending List 中。
+ * 定时任务：恢复待确认列表中长时间未确认的消息。
+ * 消费者宕机或处理失败时，消息会留在待确认列表中。
  * 此任务会 XCLAIM 这些消息并重新投递给当前消费者处理。
  */
 @Component
@@ -34,7 +34,7 @@ public class PendingMessageRecoveryTask {
     private static final int MAX_RECOVER_COUNT = 100;
 
     /**
-     * 每 30 秒执行一次 Pending 恢复检查
+     * 每 30 秒执行一次待确认恢复检查
      */
     @Scheduled(fixedDelay = 30_000)
     public void recoverPendingMessages() {

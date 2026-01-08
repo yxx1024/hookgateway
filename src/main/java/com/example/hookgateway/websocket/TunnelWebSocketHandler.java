@@ -14,8 +14,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Map;
 
 /**
- * Tunnel WebSocket Handler
- * 处理 Webhook Tunneling 的 WebSocket 连接
+ * 隧道 WebSocket 处理器
+ * 处理 Webhook 隧道的 WebSocket 连接
  */
 @Component
 @Slf4j
@@ -90,7 +90,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
                 // 安全加固 (BOLA): 验证该事件是否确实路由给了该隧道
                 String expectedTunnelKey = sessionManager.getTunnelKeyForEvent(eventId);
 
-                // Fix: Fail Closed if mapping is missing (null) or mismatch
+                // 修复：映射缺失（null）或不匹配时直接拒绝（fail closed）
                 if (expectedTunnelKey == null || !expectedTunnelKey.equals(tunnelKey)) {
                     log.warn(
                             "[TunnelWebSocket] BOLA ATTEMPT OR MAPPING EXPIRED! Tunnel {} tried to ACK event {} which belongs to tunnel {} (or null)",
@@ -98,7 +98,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
                     return;
                 }
 
-                // 安全加固：Status 字段校验 (允许系统定义的标准状态)
+                // 安全加固：状态字段校验（允许系统定义的标准状态）
                 java.util.List<String> allowedStatuses = java.util.Arrays.asList("SUCCESS", "FAILED", "PARTIAL_SUCCESS",
                         "RECEIVED");
                 if (!allowedStatuses.contains(status)) {
@@ -106,7 +106,7 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
                     return;
                 }
 
-                // 安全加固：Detail 字段截断 (增加到 2000 字符，兼顾调试需求)
+                // 安全加固：详情字段截断（增加到 2000 字符，兼顾调试需求）
                 if (detail != null && detail.length() > 2000) {
                     detail = detail.substring(0, 2000) + "...(truncated)";
                 }
@@ -154,18 +154,18 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
-     * V11.1: 从 WebSocket Handshake Headers 中提取 tunnelKey
-     * 生产环境下建议通过 Header 传输，避免在日志中暴露 URL 参数
+     * V11.1: 从 WebSocket 握手请求头中提取 tunnelKey
+     * 生产环境下建议通过请求头传输，避免在日志中暴露 URL 参数
      */
     private String extractTunnelKey(WebSocketSession session) {
-        // 优先从 Header 获取 (推荐)
+        // 优先从请求头获取（推荐）
         String headerKey = session.getHandshakeHeaders().getFirst("X-Tunnel-Key");
         if (headerKey != null && !headerKey.isEmpty()) {
             return headerKey;
         }
 
-        // V18: Enforce Header Auth only (Security Hardening)
-        // Query Params are no longer supported to prevent leak in logs.
+        // V18: 仅允许请求头认证（安全加固）
+        // 禁用 Query 参数，避免在日志中泄露密钥
         return null;
     }
 }

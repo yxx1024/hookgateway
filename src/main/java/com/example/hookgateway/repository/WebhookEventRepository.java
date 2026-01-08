@@ -14,20 +14,20 @@ public interface WebhookEventRepository
                 extends JpaRepository<WebhookEvent, Long>, JpaSpecificationExecutor<WebhookEvent> {
 
         /**
-         * Delete all events received before the specified date
-         * 
-         * @param cutoffDate the cutoff date
-         * @return number of deleted records
+         * 删除指定时间之前的事件
+         *
+         * @param cutoffDate 截止时间
+         * @return 删除记录数
          */
         @Modifying
         @Query("DELETE FROM WebhookEvent w WHERE w.receivedAt < :cutoffDate")
         int deleteByReceivedAtBefore(LocalDateTime cutoffDate);
 
         /**
-         * Count events by status
-         * 
-         * @param status the status to count
-         * @return number of events with the specified status
+         * 按状态统计事件数
+         *
+         * @param status 目标状态
+         * @return 指定状态的事件数量
          */
         long countByStatus(String status);
 }

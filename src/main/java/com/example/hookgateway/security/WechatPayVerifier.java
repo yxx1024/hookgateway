@@ -20,13 +20,10 @@ public class WechatPayVerifier implements VerifierStrategy {
     private static final String HEADER_SIGNATURE = "Wechatpay-Signature";
     private static final String HEADER_SERIAL = "Wechatpay-Serial";
 
-    // Algorithm mandated by WeChat Pay V3
+    // 微信支付 V3 要求的算法
     private static final String ALGORITHM = "SHA256withRSA";
 
-    // Simple JSON parser dependency isn't needed if we do simple string check or
-    // use ObjectMapper if available.
-    // Trying to be dependency-light for the snippet, but Spring Boot has Jackson.
-    // Let's use Jackson for robustness.
+    // 使用 Jackson 解析 JSON，兼顾可靠性与简化实现
     @org.springframework.beans.factory.annotation.Autowired
     private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
@@ -40,22 +37,22 @@ public class WechatPayVerifier implements VerifierStrategy {
             return false;
         }
 
-        // 1. Extract Headers
+        // 1. 读取必要请求头
         String timestamp = extractHeaderValue(event.getHeaders(), HEADER_TIMESTAMP);
         String nonce = extractHeaderValue(event.getHeaders(), HEADER_NONCE);
         String signature = extractHeaderValue(event.getHeaders(), HEADER_SIGNATURE);
-        String serial = extractHeaderValue(event.getHeaders(), HEADER_SERIAL); // New: Serial
+        String serial = extractHeaderValue(event.getHeaders(), HEADER_SERIAL); // Serial 证书序列号
 
         if (timestamp == null || nonce == null || signature == null) {
             log.warn("WeChat verification failed: Missing required headers (Timestamp/Nonce/Signature)");
             return false;
         }
 
-        // Fix: Replay Attack Protection
+        // 修复：防重放
         try {
             long eventTime = Long.parseLong(timestamp);
             long currentTime = System.currentTimeMillis() / 1000;
-            // 5 minutes window (300 seconds)
+            // 5 分钟窗口（300 秒）
             if (Math.abs(currentTime - eventTime) > 300) {
                 log.warn("WeChat verification failed: Timestamp {} is outside of 5min window (current: {})", timestamp,
                         currentTime);
@@ -72,23 +69,23 @@ public class WechatPayVerifier implements VerifierStrategy {
         }
 
         try {
-            // 2. Construct Signature String
-            // Format: Timestamp + "\n" + Nonce + "\n" + Body + "\n"
+            // 2. 组装签名串
+            // 格式：Timestamp + "\n" + Nonce + "\n" + Body + "\n"
             String signatureStr = timestamp + "\n"
                     + nonce + "\n"
                     + payload + "\n";
 
-            // 3. Resolve Public Key
+            // 3. 选择匹配的公钥
             String publicKeyPem = resolvePublicKey(verifySecret, serial);
             if (publicKeyPem == null) {
                 log.warn("WeChat verification failed: No matching public key found for serial {}", serial);
                 return false;
             }
 
-            // 4. Parse Public Key
+            // 4. 解析公钥
             PublicKey publicKey = PemUtils.parsePublicKey(publicKeyPem);
 
-            // 5. Verify Signature
+            // 5. 验证签名
             Signature verifier = Signature.getInstance(ALGORITHM);
             verifier.initVerify(publicKey);
             verifier.update(signatureStr.getBytes(StandardCharsets.UTF_8));
@@ -107,10 +104,10 @@ public class WechatPayVerifier implements VerifierStrategy {
 
     private String resolvePublicKey(String verifySecret, String serial) {
         verifySecret = verifySecret.trim();
-        // Check if it's JSON map
+        // 判断是否为 JSON 映射
         if (verifySecret.startsWith("{") && verifySecret.endsWith("}")) {
             try {
-                // Parse JSON: {"SERIAL": "PEM", ...}
+                // 解析 JSON：{"SERIAL": "PEM", ...}
                 java.util.Map<String, String> keys = objectMapper.readValue(verifySecret,
                         new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {
                         });
@@ -129,18 +126,17 @@ public class WechatPayVerifier implements VerifierStrategy {
                 return pem;
             } catch (Exception e) {
                 log.error("Failed to parse verifySecret as JSON map", e);
-                // Fallback or fail? If it looks like JSON but fails, it's likely a config
-                // error.
+                // 若看起来是 JSON 但解析失败，通常是配置错误
                 return null;
             }
         } else {
-            // Backward compatibility: Treat entire string as single PEM
-            // If serial provided, we can't check it match, just use the key.
+            // 兼容旧配置：整串视为单个 PEM
+            // 若有 serial 也无法匹配，仅直接使用
             return verifySecret;
         }
     }
 
-    // Simple LRU Cache for Nonce to prevent replay (Size 10000)
+    // 简易 LRU 缓存用于防重放（容量 10000）
     private static final java.util.Set<String> PROCESSED_NONCES = java.util.Collections.synchronizedSet(
             java.util.Collections.newSetFromMap(new java.util.LinkedHashMap<String, Boolean>() {
                 protected boolean removeEldestEntry(java.util.Map.Entry<String, Boolean> eldest) {
@@ -156,7 +152,7 @@ public class WechatPayVerifier implements VerifierStrategy {
         return false;
     }
 
-    // Helper to extract header from the raw headers string (Key: Value\nKey: Value)
+    // 从原始 headers 字符串中提取 Header（Key: Value\nKey: Value）
     private String extractHeaderValue(String allHeaders, String headerName) {
         if (allHeaders == null || headerName == null)
             return null;

@@ -48,7 +48,7 @@ public class WebhookStreamConsumer implements StreamListener<String, MapRecord<S
         } catch (Exception e) {
             log.error("Error processing Redis Stream message: {}. Message will remain in pending list for retry.",
                     e.getMessage(), e);
-            // 不 ACK，消息保留在 Pending List 中等待恢复任务重试
+            // 不 ACK，消息保留在待确认列表中等待恢复任务重试
         }
     }
 

@@ -16,7 +16,7 @@ public class VerifierFactory {
         } else if ("WECHAT_PAY".equalsIgnoreCase(method)) {
             return wechatPayVerifier;
         }
-        // Future: ALIPAY, etc.
-        return null; // Return null if NONE or unknown
+        // 预留：支付宝等其他验签方式
+        return null; // NONE 或未知类型时返回 null
     }
 }

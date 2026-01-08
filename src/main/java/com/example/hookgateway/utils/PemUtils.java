@@ -12,11 +12,11 @@ public class PemUtils {
             throw new IllegalArgumentException("PEM string cannot be null");
         }
 
-        // Remove headers and footers
+        // 去除 PEM 头尾
         String publicKeyPEM = pem
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")
-                .replaceAll("\\s+", ""); // More robust whitespace removal
+                .replaceAll("\\s+", ""); // 更稳妥地去除空白字符
 
         byte[] encoded = Base64.getDecoder().decode(publicKeyPEM);
 

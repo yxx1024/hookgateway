@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 /**
  * SSRF 校验工具类
  * 防止 Webhook 转发请求到内网受保护的 IP 地址
- * V2: 支持 DNS Pinning (解析后固定 IP)，防止 DNS Rebinding 攻击
+ * V2: 支持 DNS 固定（解析后固定 IP），防止 DNS 重绑定攻击
  */
 @Component
 @Slf4j
@@ -44,13 +44,13 @@ public class UrlValidator {
                 throw new IllegalArgumentException("Host cannot be empty");
             }
 
-            // V13: Protocol Allowlist
+            // V13: 协议白名单
             String scheme = uri.getScheme();
             if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
                 throw new IllegalArgumentException("Blocked protocol: " + scheme);
             }
 
-            // V13: Explicit Block for Wildcard/Zero Address
+            // V13: 显式拦截通配/零地址
             if (host.equals("0.0.0.0") || host.equals("::") || host.equals("[::]")) {
                 throw new IllegalArgumentException("Blocked wildcard address: " + host);
             }
@@ -60,7 +60,7 @@ public class UrlValidator {
                 throw new IllegalArgumentException("Blocked host: " + host);
             }
 
-            // 2. 解析 IP 地址并检查 (DNS Pinning 核心)
+            // 2. 解析 IP 地址并检查（DNS 固定核心）
             // 获取所有 IP，只要有一个是黑名单 IP，就应当警惕。
             // 严格模式：我们只使用第一个安全的 IP 进行连接。
             InetAddress[] addresses = InetAddress.getAllByName(host);
@@ -69,8 +69,7 @@ public class UrlValidator {
             for (InetAddress addr : addresses) {
                 if (isBlockedAddress(addr)) {
                     log.warn("[SSRF] Found blocked IP: {} for host: {}", addr.getHostAddress(), host);
-                    // Fail secure: if any IP is bad, reject the whole host?
-                    // Usually yes, to prevent round-robin DNS attacks.
+                    // 只要有一个 IP 命中黑名单，就拒绝整个域名（避免 DNS 轮询绕过）
                     throw new IllegalArgumentException("Blocked IP detected: " + addr.getHostAddress());
                 }
                 if (safeAddress == null) {
@@ -82,20 +81,20 @@ public class UrlValidator {
                 throw new IllegalArgumentException("Could not resolve safe IP for host: " + host);
             }
 
-            // 构造 Safe Target
-            // 如果是 HTTPS，我们不得不使用原域名以通过 SSL 校验 (依赖 JVM DNS Cache TTL=60s 防护 Rebinding)
-            // 如果是 HTTP，我们不仅可以使用原域名，更推荐直接使用 IP + Host Header (完全杜绝 Rebinding)
+            // 构造安全目标
+            // HTTPS 需使用原域名以通过 SSL 校验（依赖 JVM DNS 缓存 TTL=60s 防护重绑定）
+            // HTTP 可使用 IP 直连并设置 Host 头，进一步避免重绑定
             // 这里我们为调用方提供两种模式的信息。
 
             boolean useIpConnection = scheme.equalsIgnoreCase("http");
             String finalUrl = url;
 
             if (useIpConnection) {
-                // Reconstruct URL with IP
-                // e.g. http://1.2.3.4:8080/path?query
+                // 用 IP 重新构建 URL
+                // 例如 http://1.2.3.4:8080/path?query
                 int port = uri.getPort();
                 String ip = safeAddress.getHostAddress();
-                // Handle IPv6 literal
+                // 处理 IPv6 字面量
                 if (ip.contains(":")) {
                     ip = "[" + ip + "]";
                 }
@@ -141,7 +140,7 @@ public class UrlValidator {
 
         byte[] bytes = addr.getAddress();
 
-        // V14: IPv6 ULA (Unique Local Address) check: fc00::/7
+        // V14: IPv6 ULA（唯一本地地址）检查：fc00::/7
         if (bytes.length == 16) {
             if ((bytes[0] & 0xFE) == (byte) 0xFC) {
                 return true;
@@ -195,8 +194,8 @@ public class UrlValidator {
     @Getter
     @RequiredArgsConstructor
     public static class ValidatedTarget {
-        private final String targetUrl; // 可以是 IP URL (HTTP) 或 原 URL (HTTPS)
-        private final String originalHost; // 用于 Host Header
-        private final boolean useIpConnection; // 是否使用了 IP 直连
+        private final String targetUrl; // 可为 IP URL（HTTP）或原始 URL（HTTPS）
+        private final String originalHost; // 用于 Host 头
+        private final boolean useIpConnection; // 是否使用 IP 直连
     }
 }

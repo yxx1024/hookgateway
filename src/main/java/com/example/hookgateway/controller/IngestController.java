@@ -21,7 +21,7 @@ public class IngestController {
     private final WebhookEventRepository eventRepository;
     private final WebhookProcessingService processingService;
 
-    // Redis support - optional
+    // Redis 支持（可选）
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
@@ -45,7 +45,7 @@ public class IngestController {
             headers.append(name).append(": ").append(request.getHeader(name)).append("\n");
         }
 
-        // 1. Redis Async Ingestion (Write-Behind)
+        // 1. Redis 异步摄入（写后）
         boolean redisAvailable = (redisTemplate != null);
         if ("redis".equalsIgnoreCase(ingestMode) && redisAvailable) {
             try {
@@ -61,30 +61,30 @@ public class IngestController {
                 return org.springframework.http.ResponseEntity.accepted().body("Accepted");
             } catch (Exception e) {
                 log.error("Failed to push to Redis Ingest Stream, falling back to Sync", e);
-                // Fallback will continue below
+                // 失败后继续走同步逻辑
             }
         }
 
-        // 2. Default Sync Ingestion
+        // 2. 默认同步摄入
         WebhookEvent event = WebhookEvent.builder()
                 .source(source)
                 .method(request.getMethod())
                 .headers(headers.toString())
                 .payload(body)
                 .receivedAt(LocalDateTime.now())
-                .status("PENDING") // Initial status for tracking
+                .status("PENDING") // 初始状态
                 .build();
 
         final WebhookEvent savedEvent = eventRepository.save(event);
 
-        // Async Forwarding based on mode (Distribution Mode)
+        // 根据分发模式进行异步转发
         if ("redis".equalsIgnoreCase(distributionMode) && redisAvailable) {
             log.info("Dispatching event {} via Redis Stream", savedEvent.getId());
-            // 添加消息到 Stream
+            // 添加消息到流
             redisTemplate.opsForStream().add(
                     com.example.hookgateway.config.RedisStreamConfig.STREAM_KEY,
                     java.util.Collections.singletonMap("eventId", String.valueOf(savedEvent.getId())));
-            // 裁剪 Stream 长度，保留最近约 10000 条消息（使用近似模式，性能更好）
+            // 裁剪流长度，保留最近约 10000 条消息（使用近似模式，性能更好）
             redisTemplate.opsForStream().trim(
                     com.example.hookgateway.config.RedisStreamConfig.STREAM_KEY, 10000, true);
         } else {

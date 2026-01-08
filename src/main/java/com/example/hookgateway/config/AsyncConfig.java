@@ -14,11 +14,11 @@ public class AsyncConfig {
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        // Core pool size: threads to keep alive
+        // 核心线程数
         executor.setCorePoolSize(10);
-        // Max pool size: max threads to allow
+        // 最大线程数
         executor.setMaxPoolSize(50);
-        // Queue capacity: tasks to buffer
+        // 队列容量
         executor.setQueueCapacity(200);
         executor.setThreadNamePrefix("Async-");
         executor.initialize();

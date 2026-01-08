@@ -8,8 +8,8 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 /**
- * WebSocket Configuration
- * 配置 Webhook Tunneling 的 WebSocket 端点
+ * WebSocket 配置
+ * 配置 Webhook 隧道的 WebSocket 端点
  */
 @Configuration
 @EnableWebSocket

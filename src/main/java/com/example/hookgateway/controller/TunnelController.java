@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Tunnel Controller
- * 提供 Tunnel Key 管理和状态查询 API
+ * 隧道控制器
+ * 提供隧道 Key 管理和状态查询 API
  */
 @RestController
 @RequestMapping("/api/tunnel")
@@ -20,7 +20,7 @@ public class TunnelController {
     private final TunnelSessionManager sessionManager;
 
     /**
-     * 生成新的 Tunnel Key
+     * 生成新的隧道 Key
      */
     @PostMapping("/generate-key")
     public ResponseEntity<Map<String, String>> generateKey() {
@@ -29,7 +29,7 @@ public class TunnelController {
     }
 
     /**
-     * 查询 Tunnel 连接状态
+     * 查询隧道连接状态
      */
     @GetMapping("/status/{tunnelKey}")
     public ResponseEntity<Map<String, Object>> getStatus(@PathVariable String tunnelKey) {

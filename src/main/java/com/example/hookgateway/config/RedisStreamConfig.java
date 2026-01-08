@@ -27,7 +27,7 @@ public class RedisStreamConfig {
                         RedisConnectionFactory connectionFactory,
                         com.example.hookgateway.service.WebhookStreamConsumer consumer) {
 
-                // 1. Initialize Stream and Group if not exists
+                // 1. 初始化 Stream 与 Group（不存在则创建）
                 try {
                         connectionFactory.getConnection().streamCommands().xGroupCreate(
                                         STREAM_KEY.getBytes(), GROUP_NAME, ReadOffset.from("0"), true);
@@ -35,7 +35,7 @@ public class RedisStreamConfig {
                         log.info("Stream or Group already exists, skipping initialization");
                 }
 
-                // 2. Container Options
+                // 2. 容器参数
                 StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options = StreamMessageListenerContainer.StreamMessageListenerContainerOptions
                                 .builder()
                                 .pollTimeout(Duration.ofSeconds(1))
@@ -44,7 +44,7 @@ public class RedisStreamConfig {
                 StreamMessageListenerContainer<String, MapRecord<String, String, String>> container = StreamMessageListenerContainer
                                 .create(connectionFactory, options);
 
-                // 3. Register Listener
+                // 3. 注册监听器
                 container.receive(
                                 Consumer.from(GROUP_NAME, CONSUMER_NAME),
                                 StreamOffset.create(STREAM_KEY, ReadOffset.lastConsumed()),

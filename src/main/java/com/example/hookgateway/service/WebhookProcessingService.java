@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Webhook 处理服务：负责验签、过滤与投递。
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
