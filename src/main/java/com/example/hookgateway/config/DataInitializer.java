@@ -21,6 +21,11 @@ public class DataInitializer implements CommandLineRunner {
 
     private static final String DEFAULT_ADMIN_USERNAME = "admin";
 
+    /**
+     * 启动时初始化管理员账户。
+     *
+     * @param args 启动参数
+     */
     @Override
     public void run(String... args) {
         if (!userRepository.existsByUsername(DEFAULT_ADMIN_USERNAME)) {

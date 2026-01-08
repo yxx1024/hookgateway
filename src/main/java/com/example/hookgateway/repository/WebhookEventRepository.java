@@ -9,6 +9,9 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 
+/**
+ * Webhook 事件仓储接口。
+ */
 @Repository
 public interface WebhookEventRepository
                 extends JpaRepository<WebhookEvent, Long>, JpaSpecificationExecutor<WebhookEvent> {

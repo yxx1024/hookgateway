@@ -12,6 +12,9 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 
 import java.time.Duration;
 
+/**
+ * Redis Stream 配置。
+ */
 @Configuration
 @Slf4j
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "app.distribution.mode", havingValue = "redis")
@@ -22,6 +25,13 @@ public class RedisStreamConfig {
         // 动态生成消费者名称，支持多实例部署
         public static final String CONSUMER_NAME = "consumer-" + java.util.UUID.randomUUID().toString().substring(0, 8);
 
+        /**
+         * 创建并启动流消费监听容器。
+         *
+         * @param connectionFactory Redis 连接工厂
+         * @param consumer          消费者
+         * @return 监听容器
+         */
         @Bean
         public StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer(
                         RedisConnectionFactory connectionFactory,

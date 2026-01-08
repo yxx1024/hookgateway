@@ -89,6 +89,14 @@ public class TunnelSessionManager {
         }
     }
 
+    /**
+     * 将事件发送到本地隧道会话。
+     *
+     * @param event     事件
+     * @param tunnelKey 隧道 Key
+     * @param session   会话
+     * @return 发送结果描述
+     */
     private String deliverToLocal(WebhookEvent event, String tunnelKey, WebSocketSession session) {
         try {
             java.util.Map<String, Object> tunnelMessage = new java.util.HashMap<>();
@@ -110,6 +118,12 @@ public class TunnelSessionManager {
         }
     }
 
+    /**
+     * 将事件广播给集群其他节点。
+     *
+     * @param event     事件
+     * @param tunnelKey 隧道 Key
+     */
     private void broadcastToCluster(WebhookEvent event, String tunnelKey) {
         try {
             TunnelBroadcastMessage msg = TunnelBroadcastMessage.builder()

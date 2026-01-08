@@ -29,11 +29,21 @@ public class WebhookProcessingService {
     private final VerifierFactory verifierFactory;
     private final TunnelSessionManager tunnelSessionManager;
 
+    /**
+     * 异步处理事件。
+     *
+     * @param event 事件
+     */
     @Async("taskExecutor")
     public void processEventAsync(WebhookEvent event) {
         processEvent(event);
     }
 
+    /**
+     * 同步处理事件（验签、过滤、投递、更新状态）。
+     *
+     * @param event 事件
+     */
     public void processEvent(WebhookEvent event) {
         List<Subscription> subs = subscriptionRepository.findBySourceAndActiveTrue(event.getSource());
 

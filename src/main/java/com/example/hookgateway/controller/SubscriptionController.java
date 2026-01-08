@@ -7,6 +7,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 订阅管理控制器。
+ */
 @Controller
 @RequestMapping("/subscriptions")
 @RequiredArgsConstructor
@@ -14,6 +17,12 @@ public class SubscriptionController {
 
     private final SubscriptionRepository repository;
 
+    /**
+     * 订阅列表页面。
+     *
+     * @param model 视图模型
+     * @return 页面名
+     */
     @GetMapping
     public String index(Model model) {
         model.addAttribute("subscriptions", repository.findAll());
@@ -21,6 +30,20 @@ public class SubscriptionController {
         return "subscriptions";
     }
 
+    /**
+     * 创建订阅。
+     *
+     * @param source          来源
+     * @param targetUrl       目标地址
+     * @param filterType      过滤类型
+     * @param filterRule      过滤规则
+     * @param verifyMethod    验签方法
+     * @param verifySecret    验签密钥
+     * @param signatureHeader 签名请求头
+     * @param destinationType 目标类型
+     * @param tunnelKey       隧道 Key
+     * @return 重定向路径
+     */
     @PostMapping
     public String create(@RequestParam String source,
             @RequestParam(required = false) String targetUrl,
@@ -65,12 +88,24 @@ public class SubscriptionController {
         return "redirect:/subscriptions";
     }
 
+    /**
+     * 删除订阅。
+     *
+     * @param id 订阅 ID
+     * @return 重定向路径
+     */
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
         repository.deleteById(id);
         return "redirect:/subscriptions";
     }
 
+    /**
+     * 启用/禁用订阅。
+     *
+     * @param id 订阅 ID
+     * @return 重定向路径
+     */
     @PostMapping("/{id}/toggle")
     public String toggle(@PathVariable Long id) {
         repository.findById(id).ifPresent(sub -> {

@@ -18,10 +18,20 @@ public class LoginAttemptService {
     // 记录 IP -> 失败次数
     private final Map<String, FailedAttempt> attemptsCache = new ConcurrentHashMap<>();
 
+    /**
+     * 登录成功后清理失败记录。
+     *
+     * @param key IP 地址
+     */
     public void loginSucceeded(String key) {
         attemptsCache.remove(key);
     }
 
+    /**
+     * 记录一次登录失败。
+     *
+     * @param key IP 地址
+     */
     public void loginFailed(String key) {
         attemptsCache.compute(key, (k, attempt) -> {
             long now = System.currentTimeMillis();
@@ -40,6 +50,12 @@ public class LoginAttemptService {
         });
     }
 
+    /**
+     * 判断 IP 是否被封禁。
+     *
+     * @param key IP 地址
+     * @return true 表示被封禁
+     */
     public boolean isBlocked(String key) {
         FailedAttempt attempt = attemptsCache.get(key);
         if (attempt == null) {
@@ -66,6 +82,11 @@ public class LoginAttemptService {
         }
     }
 
+    /**
+     * 监听认证成功事件，清理失败记录。
+     *
+     * @param event 认证事件
+     */
     @org.springframework.context.event.EventListener
     public void onAuthenticationSuccess(
             org.springframework.security.authentication.event.AuthenticationSuccessEvent event) {
@@ -75,6 +96,11 @@ public class LoginAttemptService {
         }
     }
 
+    /**
+     * 监听认证失败事件，增加失败计数。
+     *
+     * @param event 认证事件
+     */
     @org.springframework.context.event.EventListener
     public void onAuthenticationFailure(
             org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent event) {
@@ -84,6 +110,12 @@ public class LoginAttemptService {
         }
     }
 
+    /**
+     * 从认证详情中获取客户端 IP。
+     *
+     * @param authentication 认证信息
+     * @return IP 地址
+     */
     private String getClientIP(org.springframework.security.core.Authentication authentication) {
         if (authentication == null)
             return null;

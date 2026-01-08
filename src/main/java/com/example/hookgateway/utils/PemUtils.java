@@ -5,8 +5,18 @@ import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
+/**
+ * PEM 工具类。
+ */
 public class PemUtils {
 
+    /**
+     * 解析 PEM 格式公钥。
+     *
+     * @param pem PEM 字符串
+     * @return 公钥对象
+     * @throws Exception 解析失败时抛出
+     */
     public static PublicKey parsePublicKey(String pem) throws Exception {
         if (pem == null) {
             throw new IllegalArgumentException("PEM string cannot be null");

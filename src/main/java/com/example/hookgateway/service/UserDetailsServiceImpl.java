@@ -22,6 +22,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final com.example.hookgateway.security.LoginAttemptService loginAttemptService;
     private final jakarta.servlet.http.HttpServletRequest request;
 
+    /**
+     * 根据用户名加载用户信息，并执行 IP 级别的登录限制检查。
+     *
+     * @param username 用户名
+     * @return 用户详情
+     * @throws UsernameNotFoundException 用户不存在时抛出
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // V17: 暴力破解防护
@@ -44,6 +51,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN")));
     }
 
+    /**
+     * 获取客户端 IP 地址。
+     *
+     * @return 客户端 IP
+     */
     private String getClientIP() {
         return request.getRemoteAddr();
     }

@@ -27,6 +27,12 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
     private final com.example.hookgateway.repository.WebhookEventRepository eventRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * 建立 WebSocket 连接后进行鉴权并注册会话。
+     *
+     * @param session 会话
+     * @throws Exception 异常
+     */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         String tunnelKey = extractTunnelKey(session);
@@ -60,6 +66,13 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(welcomeMsg)));
     }
 
+    /**
+     * 处理客户端消息。
+     *
+     * @param session 会话
+     * @param message 文本消息
+     * @throws Exception 异常
+     */
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String tunnelKey = extractTunnelKey(session);
@@ -129,6 +142,13 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * 连接关闭后清理会话。
+     *
+     * @param session 会话
+     * @param status  关闭状态
+     * @throws Exception 异常
+     */
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         String tunnelKey = extractTunnelKey(session);
@@ -139,6 +159,13 @@ public class TunnelWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * 处理传输异常并清理会话。
+     *
+     * @param session   会话
+     * @param exception 异常
+     * @throws Exception 异常
+     */
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         String tunnelKey = extractTunnelKey(session);

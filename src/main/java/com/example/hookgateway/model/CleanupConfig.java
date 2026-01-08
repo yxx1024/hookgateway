@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+/**
+ * 清理配置实体。
+ */
 @Entity
 @Data
 @Builder

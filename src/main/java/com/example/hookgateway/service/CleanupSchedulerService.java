@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+/**
+ * 事件清理调度服务。
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -108,6 +111,9 @@ public class CleanupSchedulerService {
         return configRepository.save(config);
     }
 
+    /**
+     * 清理结果返回体。
+     */
     public record CleanupResult(boolean executed, Long deletedCount, String message) {
         public static CleanupResultBuilder builder() {
             return new CleanupResultBuilder();

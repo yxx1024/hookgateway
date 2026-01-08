@@ -61,7 +61,7 @@ public class GlobalExceptionHandler {
             return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        // 如果是页面请求，返回通用的 Error 页面
+        // 如果是页面请求，返回通用的错误页面
         ModelAndView mav = new ModelAndView();
         mav.addObject("message", "An unexpected error occurred.");
         mav.setViewName("error"); 

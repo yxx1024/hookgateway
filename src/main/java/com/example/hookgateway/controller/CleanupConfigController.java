@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 清理配置接口控制器。
+ */
 @RestController
 @RequestMapping("/api/cleanup")
 @RequiredArgsConstructor

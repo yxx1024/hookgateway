@@ -83,7 +83,7 @@ public class UrlValidator {
 
             // 构造安全目标
             // HTTPS 需使用原域名以通过 SSL 校验（依赖 JVM DNS 缓存 TTL=60s 防护重绑定）
-            // HTTP 可使用 IP 直连并设置 Host 头，进一步避免重绑定
+            // HTTP 可使用 IP 直连并设置 Host 请求头，进一步避免重绑定
             // 这里我们为调用方提供两种模式的信息。
 
             boolean useIpConnection = scheme.equalsIgnoreCase("http");
@@ -122,6 +122,12 @@ public class UrlValidator {
         }
     }
 
+    /**
+     * 快速判断 URL 是否安全。
+     *
+     * @param url 目标 URL
+     * @return true 表示安全
+     */
     public boolean isSafeUrl(String url) {
         try {
             validate(url);
@@ -131,6 +137,12 @@ public class UrlValidator {
         }
     }
 
+    /**
+     * 判断 IP 是否属于受限范围。
+     *
+     * @param addr IP 地址
+     * @return true 表示受限，false 表示允许
+     */
     private boolean isBlockedAddress(InetAddress addr) {
         // 检查是否为回环或私有地址
         if (addr.isLoopbackAddress() || addr.isSiteLocalAddress() || addr.isLinkLocalAddress()
@@ -161,6 +173,13 @@ public class UrlValidator {
         return false;
     }
 
+    /**
+     * 判断 IP 是否落入指定 CIDR。
+     *
+     * @param ip   IP 地址
+     * @param cidr CIDR 表示
+     * @return true 表示命中
+     */
     private boolean isInSubnet(String ip, String cidr) {
         try {
             String[] parts = cidr.split("/");
@@ -191,11 +210,14 @@ public class UrlValidator {
         }
     }
 
+    /**
+     * 校验后的目标信息。
+     */
     @Getter
     @RequiredArgsConstructor
     public static class ValidatedTarget {
         private final String targetUrl; // 可为 IP URL（HTTP）或原始 URL（HTTPS）
-        private final String originalHost; // 用于 Host 头
+        private final String originalHost; // 用于 Host 请求头
         private final boolean useIpConnection; // 是否使用 IP 直连
     }
 }

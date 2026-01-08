@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+/**
+ * 密码修改控制器。
+ */
 @Controller
 @RequiredArgsConstructor
 public class PasswordChangeController {
@@ -19,12 +22,28 @@ public class PasswordChangeController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * 显示修改密码页面。
+     *
+     * @param model 视图模型
+     * @return 页面名
+     */
     @GetMapping("/change-password")
     public String showChangePasswordPage(Model model) {
         model.addAttribute("currentUri", "/settings");
         return "change-password";
     }
 
+    /**
+     * 提交密码修改。
+     *
+     * @param userDetails     当前用户
+     * @param oldPassword     旧密码
+     * @param newPassword     新密码
+     * @param confirmPassword 确认密码
+     * @param model           视图模型
+     * @return 页面名或重定向
+     */
     @PostMapping("/change-password")
     public String changePassword(
             @AuthenticationPrincipal UserDetails userDetails,

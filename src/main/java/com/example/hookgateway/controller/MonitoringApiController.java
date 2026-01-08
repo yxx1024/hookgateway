@@ -108,7 +108,10 @@ public class MonitoringApiController {
     }
 
     /**
-     * 格式化运行时间
+     * 格式化运行时间。
+     *
+     * @param uptimeMs 运行时长（毫秒）
+     * @return 格式化文本
      */
     private String formatUptime(long uptimeMs) {
         long seconds = uptimeMs / 1000;

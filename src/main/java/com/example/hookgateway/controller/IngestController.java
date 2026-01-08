@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Enumeration;
 
+/**
+ * Webhook 摄入控制器。
+ */
 @RestController
 @RequestMapping("/hooks")
 @RequiredArgsConstructor
@@ -34,6 +37,15 @@ public class IngestController {
     @org.springframework.beans.factory.annotation.Value("${app.distribution.mode:async}")
     private String distributionMode;
 
+    /**
+     * 接收 Webhook 并保存事件，按分发模式投递。
+     *
+     * @param source  来源标识
+     * @param request HTTP 请求
+     * @param body    请求体
+     * @return 响应结果
+     * @throws IOException 读取请求失败
+     */
     @PostMapping("/{source}/**")
     public org.springframework.http.ResponseEntity<String> ingest(@PathVariable String source,
             HttpServletRequest request,

@@ -21,6 +21,15 @@ public class RequestSizeLimitFilter implements Filter {
 
     private static final long MAX_REQUEST_SIZE = 2 * 1024 * 1024; // 2MB
 
+    /**
+     * 执行请求大小限制过滤。
+     *
+     * @param request  请求
+     * @param response 响应
+     * @param chain    过滤链
+     * @throws IOException      IO 异常
+     * @throws ServletException Servlet 异常
+     */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -58,6 +67,14 @@ public class RequestSizeLimitFilter implements Filter {
         chain.doFilter(request, response);
     }
 
+    /**
+     * 返回 413 并记录日志。
+     *
+     * @param response 响应
+     * @param path     请求路径
+     * @param size     请求体大小
+     * @throws IOException IO 异常
+     */
     private void reject(HttpServletResponse response, String path, long size) throws IOException {
         log.warn("[DoS Protection] Rejected request to {} with Content-Length: {}", path, size);
         response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "Payload too large");
@@ -76,6 +93,9 @@ public class RequestSizeLimitFilter implements Filter {
         }
     }
 
+    /**
+     * 请求包装器：限制输入流读取大小。
+     */
     private static class SizeLimitServletRequestWrapper extends HttpServletRequestWrapper {
         private final long maxBytes;
         private ServletInputStream inputStream;
@@ -86,6 +106,12 @@ public class RequestSizeLimitFilter implements Filter {
             this.maxBytes = maxBytes;
         }
 
+        /**
+         * 获取受限输入流。
+         *
+         * @return 输入流
+         * @throws IOException IO 异常
+         */
         @Override
         public ServletInputStream getInputStream() throws IOException {
             if (inputStream == null) {
@@ -94,6 +120,12 @@ public class RequestSizeLimitFilter implements Filter {
             return inputStream;
         }
 
+        /**
+         * 获取受限字符读取器。
+         *
+         * @return 读取器
+         * @throws IOException IO 异常
+         */
         @Override
         public java.io.BufferedReader getReader() throws IOException {
             if (reader == null) {
@@ -108,6 +140,9 @@ public class RequestSizeLimitFilter implements Filter {
         }
     }
 
+    /**
+     * 输入流包装器：统计读取字节并限制大小。
+     */
     private static class SizeLimitInputStream extends ServletInputStream {
         private final ServletInputStream delegate;
         private final long maxBytes;
@@ -118,6 +153,12 @@ public class RequestSizeLimitFilter implements Filter {
             this.maxBytes = maxBytes;
         }
 
+        /**
+         * 读取一个字节并检查限制。
+         *
+         * @return 读取的字节
+         * @throws IOException IO 异常
+         */
         @Override
         public int read() throws IOException {
             int b = delegate.read();
@@ -127,6 +168,15 @@ public class RequestSizeLimitFilter implements Filter {
             return b;
         }
 
+        /**
+         * 读取字节数组并检查限制。
+         *
+         * @param b   缓冲区
+         * @param off 偏移
+         * @param len 长度
+         * @return 读取字节数
+         * @throws IOException IO 异常
+         */
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
             int n = delegate.read(b, off, len);
@@ -136,6 +186,11 @@ public class RequestSizeLimitFilter implements Filter {
             return n;
         }
 
+        /**
+         * 累加并检查读取大小。
+         *
+         * @param n 本次读取字节数
+         */
         private void checkLimit(int n) {
             bytesRead += n;
             if (bytesRead > maxBytes) {
@@ -143,16 +198,31 @@ public class RequestSizeLimitFilter implements Filter {
             }
         }
 
+        /**
+         * 是否读取完成。
+         *
+         * @return true 表示完成
+         */
         @Override
         public boolean isFinished() {
             return delegate.isFinished();
         }
 
+        /**
+         * 是否可读。
+         *
+         * @return true 表示可读
+         */
         @Override
         public boolean isReady() {
             return delegate.isReady();
         }
 
+        /**
+         * 设置读取监听器。
+         *
+         * @param listener 监听器
+         */
         @Override
         public void setReadListener(ReadListener listener) {
             delegate.setReadListener(listener);

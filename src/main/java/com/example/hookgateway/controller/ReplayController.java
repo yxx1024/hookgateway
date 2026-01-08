@@ -5,6 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 重放接口控制器。
+ */
 @RestController
 @RequestMapping("/api/replay")
 @RequiredArgsConstructor
@@ -14,6 +17,14 @@ public class ReplayController {
     private final com.example.hookgateway.repository.WebhookEventRepository eventRepository;
     private final com.example.hookgateway.websocket.TunnelSessionManager tunnelSessionManager;
 
+    /**
+     * 重放指定事件，可选择目标 URL 或隧道 Key。
+     *
+     * @param id        事件 ID
+     * @param targetUrl 目标 URL
+     * @param tunnelKey 隧道 Key
+     * @return 重放结果
+     */
     @PostMapping("/{id}")
     public ResponseEntity<String> replay(
             @PathVariable Long id, 

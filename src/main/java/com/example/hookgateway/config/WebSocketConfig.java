@@ -21,6 +21,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @org.springframework.beans.factory.annotation.Value("${app.security.websocket.allowed-origins:*}")
     private String allowedOrigins;
 
+    /**
+     * 注册 WebSocket 处理器。
+     *
+     * @param registry 注册器
+     */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         String[] origins = allowedOrigins.split(",");

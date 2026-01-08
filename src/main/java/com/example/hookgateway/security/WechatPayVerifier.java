@@ -11,6 +11,9 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.util.Base64;
 
+/**
+ * 微信支付 V3 验签实现。
+ */
 @Component
 @Slf4j
 public class WechatPayVerifier implements VerifierStrategy {
@@ -27,6 +30,13 @@ public class WechatPayVerifier implements VerifierStrategy {
     @org.springframework.beans.factory.annotation.Autowired
     private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
+    /**
+     * 校验微信支付回调签名。
+     *
+     * @param event 事件
+     * @param sub   订阅配置
+     * @return 校验通过返回 true
+     */
     @Override
     public boolean verify(WebhookEvent event, Subscription sub) {
         String payload = event.getPayload();
@@ -102,6 +112,13 @@ public class WechatPayVerifier implements VerifierStrategy {
         }
     }
 
+    /**
+     * 根据 serial 选择对应公钥。
+     *
+     * @param verifySecret 公钥配置
+     * @param serial       证书序列号
+     * @return PEM 公钥
+     */
     private String resolvePublicKey(String verifySecret, String serial) {
         verifySecret = verifySecret.trim();
         // 判断是否为 JSON 映射
@@ -144,6 +161,12 @@ public class WechatPayVerifier implements VerifierStrategy {
                 }
             }));
 
+    /**
+     * 判断 nonce 是否重放。
+     *
+     * @param nonce 随机串
+     * @return true 表示已出现
+     */
     private boolean isNonceReplayed(String nonce) {
         if (PROCESSED_NONCES.contains(nonce)) {
             return true;
@@ -153,6 +176,13 @@ public class WechatPayVerifier implements VerifierStrategy {
     }
 
     // 从原始 headers 字符串中提取 Header（Key: Value\nKey: Value）
+    /**
+     * 从原始请求头中提取指定请求头值。
+     *
+     * @param allHeaders 原始请求头
+     * @param headerName 请求头名
+     * @return 请求头值
+     */
     private String extractHeaderValue(String allHeaders, String headerName) {
         if (allHeaders == null || headerName == null)
             return null;

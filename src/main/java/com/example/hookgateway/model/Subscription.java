@@ -9,6 +9,9 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * 订阅配置实体。
+ */
 @Entity
 @Table(name = "subscription")
 @Data

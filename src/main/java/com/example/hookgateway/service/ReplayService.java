@@ -9,6 +9,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
+/**
+ * 事件重放与重试服务。
+ */
 @org.springframework.stereotype.Service
 @lombok.RequiredArgsConstructor
 public class ReplayService {
@@ -26,6 +29,11 @@ public class ReplayService {
     private static final java.time.format.DateTimeFormatter LOG_DATE_FORMATTER = java.time.format.DateTimeFormatter
             .ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /**
+     * 追加一条重试日志。
+     *
+     * @param message 日志内容
+     */
     private void appendLog(String message) {
         StringBuilder sb = logAccumulator.get();
         if (sb.length() > 0)
@@ -33,6 +41,9 @@ public class ReplayService {
         sb.append("[").append(java.time.LocalDateTime.now().format(LOG_DATE_FORMATTER)).append("] ").append(message);
     }
 
+    /**
+     * 清理本次重试的累计日志与计数。
+     */
     private void clearLog() {
         logAccumulator.get().setLength(0);
         attemptCounter.set(0);
@@ -54,6 +65,15 @@ public class ReplayService {
      * V8: 增加了轨迹日志收集
      * V12: 优化重试参数并显式记录尝试次数
      */
+    /**
+     * 带指数退避的重放入口。
+     *
+     * @param method     HTTP 方法
+     * @param headersRaw 原始请求头
+     * @param payload    请求体
+     * @param targetUrl  目标地址
+     * @return 重放结果
+     */
     @org.springframework.retry.annotation.Retryable(retryFor = {
             RuntimeException.class }, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 2000, multiplier = 2.0))
     public ReplayResult replayWithRetry(String method, String headersRaw, String payload, String targetUrl) {
@@ -72,6 +92,16 @@ public class ReplayService {
         return result;
     }
 
+    /**
+     * 重试失败后的兜底处理。
+     *
+     * @param e          异常
+     * @param method     HTTP 方法
+     * @param headersRaw 原始请求头
+     * @param payload    请求体
+     * @param targetUrl  目标地址
+     * @return 最终失败结果
+     */
     @org.springframework.retry.annotation.Recover
     public ReplayResult recover(RuntimeException e, String method, String headersRaw, String payload,
             String targetUrl) {
@@ -88,10 +118,22 @@ public class ReplayService {
     /**
      * 需要时可从外部清理日志，一般由 IngestController 调用
      */
+    /**
+     * 清理本次重放的日志与计数。
+     */
     public void startNewTracking() {
         clearLog();
     }
 
+    /**
+     * 执行一次实际重放。
+     *
+     * @param method     HTTP 方法
+     * @param headersRaw 原始请求头
+     * @param payload    请求体
+     * @param targetUrl  目标地址
+     * @return 重放结果
+     */
     public ReplayResult replay(String method, String headersRaw, String payload, String targetUrl) {
         try {
             // V13: SSRF 防护（第二轮：DNS 固定）
@@ -115,7 +157,7 @@ public class ReplayService {
                     .timeout(Duration.ofSeconds(10)) // V12: 请求超时
                     .method(method, HttpRequest.BodyPublishers.ofString(payload == null ? "" : payload));
 
-            // HTTP 使用 IP 直连时必须设置 Host，确保虚拟主机解析正确
+            // HTTP 使用 IP 直连时必须设置 Host 请求头，确保虚拟主机解析正确
             if (validatedTarget.isUseIpConnection()) {
                 requestBuilder.header("Host", validatedTarget.getOriginalHost());
             }

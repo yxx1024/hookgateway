@@ -17,6 +17,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * 强制用户修改初始密码的过滤器。
+ */
 @Component
 @RequiredArgsConstructor
 public class ForcePasswordChangeFilter extends OncePerRequestFilter {
@@ -35,6 +38,15 @@ public class ForcePasswordChangeFilter extends OncePerRequestFilter {
             "/hooks/" // Webhook 摄入端点必须允许匿名访问，不应被拦截
     );
 
+    /**
+     * 检查是否需要强制修改密码。
+     *
+     * @param request     请求
+     * @param response    响应
+     * @param filterChain 过滤链
+     * @throws ServletException Servlet 异常
+     * @throws IOException      IO 异常
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {

@@ -11,12 +11,22 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * HMAC-SHA256 验签实现。
+ */
 @Component
 @Slf4j
 public class HmacVerifier implements VerifierStrategy {
 
     private static final String HMAC_SHA256 = "HmacSHA256";
 
+    /**
+     * 校验 HMAC 签名。
+     *
+     * @param event 事件
+     * @param sub   订阅配置
+     * @return 校验通过返回 true
+     */
     @Override
     public boolean verify(WebhookEvent event, Subscription sub) {
         String payload = event.getPayload();
@@ -55,6 +65,13 @@ public class HmacVerifier implements VerifierStrategy {
         }
     }
 
+    /**
+     * 从原始请求头中提取指定请求头值。
+     *
+     * @param allHeaders 原始请求头
+     * @param headerName 请求头名
+     * @return 请求头值
+     */
     private String extractHeaderValue(String allHeaders, String headerName) {
         if (allHeaders == null || headerName == null)
             return null;
@@ -73,6 +90,13 @@ public class HmacVerifier implements VerifierStrategy {
         return null;
     }
 
+    /**
+     * 计算 HMAC 值。
+     *
+     * @param data 原文
+     * @param key  密钥
+     * @return HMAC 十六进制字符串
+     */
     private String calculateHmac(String data, String key) throws NoSuchAlgorithmException, InvalidKeyException {
         SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
         Mac mac = Mac.getInstance(HMAC_SHA256);
@@ -81,6 +105,12 @@ public class HmacVerifier implements VerifierStrategy {
         return bytesToHex(hmacBytes);
     }
 
+    /**
+     * 将字节数组转为十六进制字符串。
+     *
+     * @param bytes 字节数组
+     * @return 十六进制字符串
+     */
     private String bytesToHex(byte[] bytes) {
         StringBuilder hexString = new StringBuilder();
         for (byte b : bytes) {

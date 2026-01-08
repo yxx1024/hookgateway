@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 仪表盘页面控制器。
+ */
 @Controller
 @RequiredArgsConstructor
 public class DashboardController {
@@ -28,13 +31,23 @@ public class DashboardController {
         private final WebhookEventRepository eventRepository;
         private final SubscriptionRepository subscriptionRepository;
 
-        @GetMapping("/")
-        public String dashboard(
-                        @RequestParam(defaultValue = "subscribed") String tab,
-                        @RequestParam(defaultValue = "0") int page,
-                        @RequestParam(defaultValue = "15") int size,
-                        @RequestParam(required = false) String q,
-                        Model model) {
+    /**
+     * 仪表盘主页。
+     *
+     * @param tab   tab 类型
+     * @param page  页码
+     * @param size  每页大小
+     * @param q     搜索关键字
+     * @param model 视图模型
+     * @return 页面名
+     */
+    @GetMapping("/")
+    public String dashboard(
+            @RequestParam(defaultValue = "subscribed") String tab,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(required = false) String q,
+            Model model) {
                 // 1. 获取已订阅的来源
                 Set<String> knownSources = subscriptionRepository.findAll().stream()
                                 .map(Subscription::getSource)
@@ -88,8 +101,15 @@ public class DashboardController {
                 return "dashboard";
         }
 
-        @GetMapping("/view/{id}")
-        public String viewDetail(@PathVariable Long id, Model model) {
+    /**
+     * 查看事件详情页面。
+     *
+     * @param id    事件 ID
+     * @param model 视图模型
+     * @return 页面名
+     */
+    @GetMapping("/view/{id}")
+    public String viewDetail(@PathVariable Long id, Model model) {
                 eventRepository.findById(id).ifPresent(event -> {
                         model.addAttribute("event", event);
                         model.addAttribute("currentUri", "/view");

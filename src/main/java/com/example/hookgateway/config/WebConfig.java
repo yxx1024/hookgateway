@@ -10,9 +10,17 @@ import org.springframework.web.servlet.i18n.SessionLocaleResolver;
 
 import java.util.Locale;
 
+/**
+ * Web MVC 配置。
+ */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    /**
+     * 会话级别的语言解析器。
+     *
+     * @return LocaleResolver
+     */
     @Bean
     public LocaleResolver localeResolver() {
         SessionLocaleResolver slr = new SessionLocaleResolver();
@@ -20,6 +28,11 @@ public class WebConfig implements WebMvcConfigurer {
         return slr;
     }
 
+    /**
+     * 语言切换拦截器。
+     *
+     * @return LocaleChangeInterceptor
+     */
     @Bean
     public LocaleChangeInterceptor localeChangeInterceptor() {
         LocaleChangeInterceptor lci = new LocaleChangeInterceptor();
@@ -27,6 +40,11 @@ public class WebConfig implements WebMvcConfigurer {
         return lci;
     }
 
+    /**
+     * 注册拦截器。
+     *
+     * @param registry 拦截器注册器
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(localeChangeInterceptor());

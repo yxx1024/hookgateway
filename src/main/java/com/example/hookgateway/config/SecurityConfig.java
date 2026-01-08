@@ -26,19 +26,31 @@ public class SecurityConfig {
 
         private final ForcePasswordChangeFilter forcePasswordChangeFilter;
 
+        /**
+         * 密码编码器（BCrypt）。
+         *
+         * @return PasswordEncoder
+         */
         @Bean
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder();
         }
 
+        /**
+         * 安全过滤链配置。
+         *
+         * @param http HttpSecurity
+         * @return SecurityFilterChain
+         * @throws Exception 配置错误
+         */
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 http
-                                // 禁用 CSRF 对 Webhook 端点和 Actuator（第三方平台/Prometheus 无法携带 CSRF Token）
+                                // 禁用 CSRF 对 Webhook 端点和 Actuator（第三方平台/Prometheus 无法携带 CSRF 令牌）
                                 .csrf(csrf -> csrf
                                                 .ignoringRequestMatchers("/hooks/**", "/actuator/**"))
                                 .authorizeHttpRequests(auth -> auth
-                                                // 开放 Webhook 摄入端点和 Tunnel WebSocket 端点
+                                                // 开放 Webhook 摄入端点和隧道 WebSocket 端点
                                                 .requestMatchers("/hooks/**", "/tunnel/**").permitAll()
                                                 // 开放静态资源和登录页
                                                 .requestMatchers("/login", "/css/**", "/js/**", "/webjars/**",

@@ -12,7 +12,19 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    /**
+     * 根据用户名查询用户。
+     *
+     * @param username 用户名
+     * @return 用户信息
+     */
     Optional<User> findByUsername(String username);
 
+    /**
+     * 判断用户名是否存在。
+     *
+     * @param username 用户名
+     * @return true 表示存在
+     */
     boolean existsByUsername(String username);
 }

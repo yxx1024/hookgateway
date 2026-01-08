@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+/**
+ * Webhook 事件实体。
+ */
 @Entity
 @Data
 @Builder

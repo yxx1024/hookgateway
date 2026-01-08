@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+/**
+ * Redis Stream 消费者：处理分发流中的事件。
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -22,6 +25,11 @@ public class WebhookStreamConsumer implements StreamListener<String, MapRecord<S
     private final WebhookProcessingService processingService;
     private final StringRedisTemplate redisTemplate;
 
+    /**
+     * 消费并处理一条流消息。
+     *
+     * @param message 流消息
+     */
     @Override
     public void onMessage(MapRecord<String, String, String> message) {
         try {
@@ -52,6 +60,11 @@ public class WebhookStreamConsumer implements StreamListener<String, MapRecord<S
         }
     }
 
+    /**
+     * 确认消息已处理。
+     *
+     * @param message 流消息
+     */
     private void acknowledge(MapRecord<String, String, String> message) {
         redisTemplate.opsForStream().acknowledge(
                 RedisStreamConfig.STREAM_KEY,

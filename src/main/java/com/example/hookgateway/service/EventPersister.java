@@ -18,6 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Redis 摄入持久化：将摄入流批量写入数据库。
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -36,6 +39,9 @@ public class EventPersister {
 
     private static final int BATCH_SIZE = 500;
 
+    /**
+     * 拉取摄入流并批量入库，随后触发分发。
+     */
     @Scheduled(fixedDelay = 100) // 每 100ms 轮询一次
     @SuppressWarnings("unchecked")
     public void processPendingEvents() {

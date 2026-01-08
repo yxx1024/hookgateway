@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class MonitoringController {
 
+    /**
+     * 监控页面。
+     *
+     * @param model 视图模型
+     * @return 页面名
+     */
     @GetMapping("/monitoring")
     public String monitoring(Model model) {
         model.addAttribute("currentUri", "/monitoring");
